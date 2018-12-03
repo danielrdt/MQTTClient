@@ -321,7 +321,8 @@ class IPS_KS_MQTTClient extends T2FModule {
         $Buffer = json_decode($data->Buffer);
         $this->debug(__FUNCTION__, 'Topic' . $Buffer->Topic);
         $this->debug(__FUNCTION__, 'MSG' . $Buffer->MSG);
-        $this->publish($Buffer->Topic,$Buffer->MSG,0,0);
+        $this->debug(__FUNCTION__, 'Retain Flag' . $Buffer->Retain);
+        $this->publish($Buffer->Topic,$Buffer->MSG,0,$Buffer->Retain);
     }
 
     /**
