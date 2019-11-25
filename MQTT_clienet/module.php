@@ -375,7 +375,7 @@ class IPS_KS_MQTTClient extends T2FModule {
             $JSON['DataID'] = "{018EF6B5-AB94-40C6-AA53-46943E824ACF}";
             $JSON['Buffer'] = json_encode($para,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); //json_encode($para);
 
-            $Data = json_encode($JSON);
+            $Data =  json_encode($JSON,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
             //if (gettype($JSON['Buffer']) == "string") {
             $this->SendDebug("Type", utf8_decode($JSON['Buffer']), 0);
             $this->SendDebug('SendDataToChildren', $Data, 0);
