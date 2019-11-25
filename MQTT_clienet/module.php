@@ -318,10 +318,11 @@ class IPS_KS_MQTTClient extends T2FModule {
         $this->debug(__FUNCTION__, 'Data Forward:' . $JSONString);
         $data = json_decode($JSONString);
         $Buffer = utf8_decode($data->Buffer);
-        $Buffer = json_decode($data->Buffer);
+        $Buffer = json_decode($Buffer);
         $this->debug(__FUNCTION__, 'Topic' . $Buffer->Topic);
         $this->debug(__FUNCTION__, 'MSG' . $Buffer->MSG);
-        $this->publish($Buffer->Topic,$Buffer->MSG,0,0);
+        $this->debug(__FUNCTION__, 'Retain Flag' . $Buffer->Retain);
+        $this->publish($Buffer->Topic,$Buffer->MSG,0,$Buffer->Retain);
     }
 
     /**
@@ -372,10 +373,11 @@ class IPS_KS_MQTTClient extends T2FModule {
             }
 
             $JSON['DataID'] = "{018EF6B5-AB94-40C6-AA53-46943E824ACF}";
-            $JSON['Buffer'] = json_encode($para);
+            $JSON['Buffer'] = json_encode($para,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); //json_encode($para);
+
             $Data = json_encode($JSON);
             //if (gettype($JSON['Buffer']) == "string") {
-            $this->SendDebug("Type", $JSON['Buffer'], 0);
+            $this->SendDebug("Type", utf8_decode($JSON['Buffer']), 0);
             $this->SendDebug('SendDataToChildren', $Data, 0);
             $this->SendDataToChildren($Data);
             //}
