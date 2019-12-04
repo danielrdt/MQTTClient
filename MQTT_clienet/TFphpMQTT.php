@@ -281,7 +281,10 @@ class phpMQTT {
                
 	/* ping: sends a keep alive ping */
 	function ping(){
-			$head = chr(0xc0).chr(0x00);		
+			//$head = chr(0xc0).chr(0x00);
+			$head = " ";
+			$head = chr(0xc0);		
+			$head .= chr(0x00);		
 			//fwrite($this->socket, $head, 2);
                         $call = $this->onSend;
                         $this->owner->$call($head);
