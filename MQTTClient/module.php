@@ -257,7 +257,6 @@ class MQTTClient extends IPSModule
 
     private function MQTTConnect()
     {
-
         $this->LogMessage('Starting connection to Client', KL_NOTIFY);
         if ($this->GetConnectionID() != 0) {
             if (is_null($this->mqtt)) {
