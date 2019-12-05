@@ -1,9 +1,12 @@
 {
-"id": "{5131B97A-5B58-4B2E-8F3A-F7EF3F672546}",
-"author": "Kai Schnittcher",
-"name": "IPS-KS-MQTT",
-"url": "www.ip-symcon.de",
-"version": "0.1",
-"build": 0,
-"date": 0
-}
+    "id": "{5131B97A-5B58-4B2E-8F3A-F7EF3F672546}",
+    "author": "Kai Schnittcher",
+    "name": "MQTTClient",
+    "url": "https://deinsmarthome.info",
+    "compatibility": {
+      "version": "5.0"
+  },
+    "version": "1.0",
+    "build": 0,
+    "date": 0
+  }

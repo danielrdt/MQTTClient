@@ -185,7 +185,7 @@ class phpMQTT {
                      } 
                     if($this->debug){
                         $call = $this->onDebug;
-                        $this->owner->$call(__FUNCTION__,"Fetching: ".strToHex($string));
+                        $this->owner->$call(__FUNCTION__,"Fetching: ".$string);
                     }                         
                 }
                 
