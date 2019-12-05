@@ -23,10 +23,10 @@ class MQTTClient extends IPSModule
 
     public function Destroy()
     {
-        //Never delete this line!
-        parent::Destroy();
         $this->SendDebug(__FUNCTION__, 'Destroy MQTT Disconnect', 0);
         $this->MQTTDisconnect();
+        //Never delete this line!
+        parent::Destroy();
     }
 
     public function Create()
@@ -87,12 +87,12 @@ class MQTTClient extends IPSModule
                     case 104:
                         $this->SendDebug(__FUNCTION__, 'I/O Modul > Deaktiviert', 0);
                         if ($this->GetStatus() == 102) {
-                            $this->MQTTDisconnect(4);
+                            $this->MQTTDisconnect();
                         }
                         break;
                     case 200:
                         $this->SendDebug(__FUNCTION__, 'I/O Modul > Fehler', 0);
-                        $this->MQTTDisconnect(4);
+                        $this->MQTTDisconnect();
                         IPS_Sleep(500);
                         if ($this->HasActiveParent()) {
                             $this->MQTTConnect();
@@ -226,14 +226,14 @@ class MQTTClient extends IPSModule
         }
     }
 
-    private function MQTTDisconnect($call = '')
+    private function MQTTDisconnect()
     {
         if (!is_null($this->mqtt)) {
             $this->mqtt->close();
             $this->mqtt = null;
             $this->OSave($this->mqtt, 'MQTT');
             $clientid = $this->GetClientID();
-            $this->LogMessage('Connection to ClientID ' . $clientid . 'lost (' . $call . ')', KL_NOTIFY);
+            $this->LogMessage('Connection closed', KL_NOTIFY);
         }
         $cID = $this->GetConnectionID();
         if ($cID != 0) {
@@ -247,7 +247,7 @@ class MQTTClient extends IPSModule
 
     private function GetClientID()
     {
-        return $this->ReadPropertyString('ClientID') . '_' . rand(1, 100);
+        return $this->ReadPropertyString('ClientID'); //. '_' . rand(1, 100);
     }
 
     private function GetConnectionID()
