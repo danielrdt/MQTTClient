@@ -113,7 +113,6 @@ class MQTTClient extends IPSModule
                 switch ($Data[0]) {
                     case KR_READY:
                         $this->SendDebug(__FUNCTION__, 'KR_Ready ->reconect', 0);
-                        // $this->MQTTDisconnect(5);
                         break;
                     default:
                         $this->SendDebug(__FUNCTION__, 'Kernelmessage unhahndled, ID' . $Data[0], 0);
@@ -128,12 +127,9 @@ class MQTTClient extends IPSModule
     public function ReceiveData($JSONString)
     {
         if (!is_null($this->mqtt)) {
-            $this->SendDebug(__FUNCTION__ . 'JSON String', $JSONString, 0);
             $data = json_decode($JSONString);
-
             $buffer = utf8_decode($data->Buffer);
 
-            $this->SendDebug(__FUNCTION__ . ' Buffer', $buffer, 0);
             $this->mqtt->receive($buffer);
             $sClass = serialize($this->mqtt);
             $this->SetBuffer('MQTT', $sClass);
@@ -151,9 +147,6 @@ class MQTTClient extends IPSModule
         $data = json_decode($JSONString);
         $Buffer = utf8_decode($data->Buffer);
         $Buffer = json_decode($Buffer);
-        $this->SendDebug(__FUNCTION__ . 'Topic:', $Buffer->Topic, 0);
-        $this->SendDebug(__FUNCTION__ . 'MSG:', $Buffer->MSG, 0);
-        $this->SendDebug(__FUNCTION__ . 'Retain Flag:', $Buffer->Retain, 0);
         $this->publish($Buffer->Topic, $Buffer->MSG, 0, $Buffer->Retain);
     }
 
@@ -164,18 +157,17 @@ class MQTTClient extends IPSModule
             ['DataID'    => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', //IO-TX
                 'Buffer' => utf8_encode($Data)]);
         if ($this->HasActiveParent()) {
-            $this->SendDebug(__FUNCTION__ . 'Data:', print_r($Data, true), 0);
             $res = parent::SendDataToParent($json);
         } else {
-            $this->SendDebug(__FUNCTION__, 'No Parent', 0);
+            $this->SendDebug(__FUNCTION__, 'No active Parent', 0);
         }
         $this->SetTimerInterval('MQTTC_Ping', $this->ReadPropertyInteger('PingInterval') * 1000);
         return $res;
     }
 
-    public function onDebug(string $topic, string $data)
+    public function onDebug(string $topic, string $data, $Format = 0)
     {
-        $this->SendDebug($topic, $data, 0);
+        $this->SendDebug($topic, $data, $Format);
     }
 
     public function onReceive($para)
@@ -195,8 +187,6 @@ class MQTTClient extends IPSModule
             $JSON['Buffer'] = json_encode($para, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
             $Data = json_encode($JSON, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $this->SendDebug('Type', utf8_decode($JSON['Buffer']), 0);
-            $this->SendDebug('SendDataToChildren', $Data, 0);
             $this->SendDataToChildren($Data);
         }
     }

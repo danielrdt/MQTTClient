@@ -164,21 +164,22 @@ class phpMQTT
         $head[1] = chr($i);
 
         // Sende Daten
-        //		fwrite($this->socket, $head, 2);
         $call = $this->onSend;
         $this->owner->$call($head);
-
-        //		fwrite($this->socket,  $buffer);
         $this->owner->$call($buffer);
 
         return true;
     }
 
     // Bearbeiten Empfangender Daten
-
     public function receive($string_in = null)
     {
         $this->buffer .= $string_in;
+
+        if ($this->debug) {
+            $call = $this->onDebug;
+            $this->owner->$call('BUFFER IN', $string_in, 1);
+        }
 
         do {
             $bOk = true;
@@ -205,12 +206,6 @@ class phpMQTT
                 $value += ($digit & 127) * $multiplier;
                 $multiplier *= 128;
             } while (($digit & 128) != 0);
-
-            if ($this->debug) {
-                $call = $this->onDebug;
-                $this->owner->$call(__FUNCTION__, "Fetching: $value ");
-            }
-
             if ($value) {
                 $string = $this->read($value);
                 // Wennn nicht genug Byte im Puffer abbrechen
@@ -218,12 +213,7 @@ class phpMQTT
                     $bOk = false;
                     break;
                 }
-                if ($this->debug) {
-                    $call = $this->onDebug;
-                    $this->owner->$call(__FUNCTION__, 'Fetching: ' . $string);
-                }
             }
-
             switch ($cmd) {
                     case 2:         // CONNACK, Connect acknowledgment
                         if ($string[1] == chr(0)) {
@@ -244,7 +234,7 @@ class phpMQTT
                     case 13:         // PINGRESP, PING response
                         if ($this->debug) {
                             $call = $this->onDebug;
-                            $this->owner->$call(__FUNCTION__, 'PING response');
+                            $this->owner->$call('MQTT:RX::PINGRESP', '');
                         }
                         break;
                     default:
@@ -322,10 +312,14 @@ class phpMQTT
         $head = ' ';
         $head = chr(0xc0);
         $head .= chr(0x00);
-        //fwrite($this->socket, $head, 2);
+
+        if ($this->debug) {
+            $call = $this->onDebug;
+            $this->owner->$call('MQTT::TX::PINGREQ', '');
+        }
+
         $call = $this->onSend;
         $this->owner->$call($head);
-        //if($this->debug) echo "ping sent\n";
     }
 
     /* disconnect: sends a proper disconect cmd */
@@ -334,7 +328,7 @@ class phpMQTT
         $head = ' ';
         $head[0] = chr(0xe0);
         $head[1] = chr(0x00);
-        //fwrite($this->socket, $head, 2);
+
         $call = $this->onSend;
         $this->owner->$call($head);
     }
@@ -377,6 +371,11 @@ class phpMQTT
         $head[0] = chr($cmd);
         $head .= $this->setmsglength($i);
 
+        if ($this->debug) {
+            $call = $this->onDebug;
+            $this->owner->$call('MQTT::TX::Message', "Topic: $topic, Payload: $content");
+        }
+
         $call = $this->onSend;
         $this->owner->$call($head . $buffer);
     }
@@ -391,11 +390,11 @@ class phpMQTT
 
         if ($this->debug) {
             $call = $this->onDebug;
-            $this->owner->$call(__FUNCTION__, "Topic: $topic, Msg: $msg");
+            $this->owner->$call('MQTT::RX::Message', "Topic: $topic, Payload: $msg");
         }
 
         // callback
-        $para = ['TOPIC' => $topic, 'MSG' => $msg, 'SENDER' => $cmd];
+        $para = ['Topic' => $topic, 'Payload' => $msg, 'SENDER' => $cmd];
         $call = $this->onReceive;
         $this->owner->$call($para);
     }
