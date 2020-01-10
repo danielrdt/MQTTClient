@@ -1,0 +1,13 @@
+{
+    "translations": {
+      "de": {
+        "Username": "Benutzername",
+        "Password": "Passwort",
+        "Modul Type": "Modul Typ",
+        "Script": "Script",
+        "Forward": "Weiterleitung (Forward)",
+        "MQTT ClientID": "MQTT ClientID",
+        "Handle Script": "Handle Script"
+      }
+    }
+  }
