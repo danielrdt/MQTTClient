@@ -4,8 +4,7 @@
 [![Check Style](https://github.com/Schnittcher/MQTTClient/workflows/Check%20Style/badge.svg)](https://github.com/Schnittcher/MQTTClient/actions)
 
 # MQTTClient
-Ein MQTT Client für IP-Symcon, dieser Client kann auf zwei Arten genutzt werden.
-Dieser Client kann per Datenfluss an einem Modul angbeunden werden oder mit einem Handle Script genutzt werden.
+Ein MQTT Client für IP-Symcon, der auf zwei Arten genutzt werden kann. Der Client kann entweder per Datenfluss mit einem eigenen Modul verbunden werden oder er kann ein vorgegebenes Script aufrufen.
 
 ## Inhaltverzeichnis
 1. [Voraussetzungen](#1-voraussetzungen)
