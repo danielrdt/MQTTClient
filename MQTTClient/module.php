@@ -183,10 +183,11 @@ class MQTTClient extends IPSModule
                 $this->Subscribe('#', 0);
             }
 
-            $JSON['DataID'] = '{018EF6B5-AB94-40C6-AA53-46943E824ACF}';
+            $JSON['DataID'] = '{DBDA9DF7-5D04-F49D-370A-2B9153D00D9B}';
             $JSON['Buffer'] = json_encode($para, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
             $Data = json_encode($JSON, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $this->SendDebug('SendDataToChildren', print_r($Data, true), 0);
             $this->SendDataToChildren($Data);
         }
     }
