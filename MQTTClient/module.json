@@ -2,7 +2,7 @@
 	"id": "{EE0D345A-CF31-428A-A613-33CE98E752DD}",
 	"name": "MQTTClient",
 	"type": 2,
-	"vendor": "Kai Schnittcher",
+	"vendor": "",
 	"aliases": ["MQTT Client"],
     "parentRequirements": [
         "{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}"
