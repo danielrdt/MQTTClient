@@ -84,6 +84,6 @@ Dieses Modul ist für die nicht kommzerielle Nutzung kostenlos, Schenkungen als 
 
 Dieses Modul ist ursprünglich von thomasf68 (https://github.com/thomasf68/IPS_MQTT) entwickelt worden.
 Ich habe dieses Modul verändert, damit es mit der aktuellen IP-Symcon Version läuft.
-Überflüssignen Code, der nicht verwendet wurde, habe ich entfernt.
+Überflüssigen Code, der nicht verwendet wurde, habe ich entfernt.
 
 [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
