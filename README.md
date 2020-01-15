@@ -17,7 +17,7 @@ Ein MQTT Client für IP-Symcon, der auf zwei Arten genutzt werden kann. Der Clie
 
 ## 1. Voraussetzungen
 
-* mindestens IPS Version 5.2
+* mindestens IPS Version 5.0
 
 ## 2. Enthaltene Module
 
