@@ -96,21 +96,17 @@ class phpMQTT
 
         $buffer .= chr(0x00);
         $i++;
-        $buffer .= chr(0x06);
+        $buffer .= chr(0x04);
         $i++;
         $buffer .= chr(0x4d);
         $i++;   // M
         $buffer .= chr(0x51);
         $i++;   // Q
-        $buffer .= chr(0x49);
-        $i++;   // I
-        $buffer .= chr(0x73);
-        $i++;   // s
-        $buffer .= chr(0x64);
-        $i++;   // d
-        $buffer .= chr(0x70);
-        $i++;   // p
-        $buffer .= chr(0x03);
+        $buffer .= chr(0x54);
+        $i++;   // T
+        $buffer .= chr(0x54);
+        $i++;   // T
+        $buffer .= chr(0x04);
         $i++;   // Version
 
         //No Will
@@ -209,23 +205,34 @@ class phpMQTT
             if ($value) {
                 $string = $this->read($value);
                 // Wennn nicht genug Byte im Puffer abbrechen
-                if ($byte1 === false) {
+                if ($string === false) {
                     $bOk = false;
                     break;
                 }
             }
+
             switch ($cmd) {
                     case 2:         // CONNACK, Connect acknowledgment
-                        if ($string[1] == chr(0)) {
-                            if ($this->debug) {
-                                $call = $this->onDebug;
-                                $this->owner->$call(__FUNCTION__, 'Connected to broker ok');
-                            }
-                            $this->status = 2;   // Staus Verbunden
-                            // callback
-                            $para = ['SENDER' => 'MQTT_CONNECT'];
-                            $call = $this->onReceive;
-                            $this->owner->$call($para);
+                        switch($string[1]) {
+                            case chr(0):
+                                if ($this->debug) {
+                                    $call = $this->onDebug;
+                                    $this->owner->$call(__FUNCTION__, 'Connected to broker ok');
+                                }
+                                $this->status = 2;   // Staus Verbunden
+                                // callback
+                                $para = ['SENDER' => 'MQTT_CONNECT'];
+                                $call = $this->onReceive;
+                                $this->owner->$call($para);
+                            break;
+
+                            case chr(1):
+                                $this->owner->$call(__FUNCTION__, 'Connection Refused, unacceptable protocol version');
+                            break;
+
+                            case chr(5):
+                                $this->owner->$call(__FUNCTION__, 'Connection Refused, not authorized');
+                            break;
                         }
                         break;
                     case 3: // PUBLISH, Publish message
