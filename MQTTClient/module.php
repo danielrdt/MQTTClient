@@ -147,7 +147,7 @@ class MQTTClient extends IPSModule
         $data = json_decode($JSONString);
         $Buffer = utf8_decode($data->Buffer);
         $Buffer = json_decode($Buffer);
-        $this->publish($Buffer->Topic, $Buffer->MSG, 0, $Buffer->Retain);
+        $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
     }
 
     public function onSendText(string $Data)
