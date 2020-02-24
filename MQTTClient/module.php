@@ -155,7 +155,8 @@ class MQTTClient extends IPSModule
         $res = false;
         $json = json_encode(
             ['DataID'    => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', //IO-TX
-                'Buffer' => utf8_encode($Data)]);
+                'Buffer' => utf8_encode($Data)]
+        );
         if ($this->HasActiveParent()) {
             $res = parent::SendDataToParent($json);
         } else {
@@ -226,13 +227,15 @@ class MQTTClient extends IPSModule
             $clientid = $this->GetClientID();
             $this->LogMessage('Connection closed', KL_NOTIFY);
         }
+        /**
         $cID = $this->GetConnectionID();
-        if ($cID != 0) {
+            if ($cID != 0) {
             if (IPS_GetProperty($cID, 'Open')) {
                 IPS_SetProperty($cID, 'Open', false);
                 IPS_ApplyChanges($cID);
             }
         }
+        **/
         $this->SetTimerInterval('MQTTC_Ping', 0);
     }
 
