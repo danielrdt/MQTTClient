@@ -227,15 +227,6 @@ class MQTTClient extends IPSModule
             $clientid = $this->GetClientID();
             $this->LogMessage('Connection closed', KL_NOTIFY);
         }
-        /**
-        $cID = $this->GetConnectionID();
-            if ($cID != 0) {
-            if (IPS_GetProperty($cID, 'Open')) {
-                IPS_SetProperty($cID, 'Open', false);
-                IPS_ApplyChanges($cID);
-            }
-        }
-        **/
         $this->SetTimerInterval('MQTTC_Ping', 0);
     }
 
