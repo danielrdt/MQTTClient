@@ -6,11 +6,18 @@
 		{ "name": "TLS", "type": "CheckBox", "caption": "TLS" },
 		{ "name": "PingInterval", "type": "NumberSpinner", "caption": "Ping Interval" },
 		{ "type": "Select", "name": "ModuleType", "caption": "Modul Type",
-    "options": [
-        { "label": "Script", "value": 1 },
-        { "label": "Forward", "value": 2 }
-    ]
-	},
+			"options": [
+				{ "label": "Script", "value": 1 },
+				{ "label": "Forward", "value": 2 }
+			]
+		},
+		{ "type": "Select", "name": "MQTTVersion", "caption": "MQTT Version",
+			"options": [
+				{ "label": "3.1", "value": 1 },
+				{ "label": "3.1.1", "value": 2 }
+			]
+		},
+		{ "name": "AutoSubscribe", "type": "CheckBox", "caption": "Auto Subscribe Topic # on connect" },
         { "name": "ClientID", "type": "ValidationTextBox", "caption": "MQTT ClientID" },
         { "name": "script", "type": "SelectScript", "caption": "Handle Script" }
 	]

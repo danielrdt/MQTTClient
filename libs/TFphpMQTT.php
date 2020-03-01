@@ -48,6 +48,9 @@ declare(strict_types=1);
 /* phpMQTT */
 class phpMQTT
 {
+    public const MQTT_VERSION_31 = 1;
+    public const MQTT_VERSION_311 = 2;
+
     public $keepalive = 30;		/* default keepalive timmer */
     public $topics = []; 	/* used to store currently subscribed topics */
     public $clientid;			/* client id sent to brocker, string */
@@ -77,7 +80,7 @@ class phpMQTT
 
     /* connects to the broker
         inputs: $clean: should the client send a clean session flag */
-    public function connect($clean = true, $will = null, $username = null, $password = null)
+    public function connect($clean = true, $will = null, $username = null, $password = null, $version = phpMQTT::MQTT_VERSION_311)
     {
         $this->status = 1;
 
@@ -96,19 +99,42 @@ class phpMQTT
 
         $buffer .= chr(0x00);
         $i++;
-        $buffer .= chr(0x04);
-        $i++;
-        $buffer .= chr(0x4d);
-        $i++;   // M
-        $buffer .= chr(0x51);
-        $i++;   // Q
-        $buffer .= chr(0x54);
-        $i++;   // T
-        $buffer .= chr(0x54);
-        $i++;   // T
-        $buffer .= chr(0x04);
-        $i++;   // Version
+        switch($version){
+            case phpMQTT::MQTT_VERSION_31:
+                $buffer .= chr(0x06);
+                $i++;
+                $buffer .= chr(0x4d);
+                $i++;   // M
+                $buffer .= chr(0x51);
+                $i++;   // Q
+                $buffer .= chr(0x49);
+                $i++;   // I
+                $buffer .= chr(0x73);
+                $i++;   // s
+                $buffer .= chr(0x64);
+                $i++;   // d
+                $buffer .= chr(0x70);
+                $i++;   // p
+                $buffer .= chr(0x03);
+                $i++;   // Version
+                break;
 
+            default:
+                $buffer .= chr(0x04);
+                $i++;
+                $buffer .= chr(0x4d);
+                $i++;   // M
+                $buffer .= chr(0x51);
+                $i++;   // Q
+                $buffer .= chr(0x54);
+                $i++;   // T
+                $buffer .= chr(0x54);
+                $i++;   // T
+                $buffer .= chr(0x04);
+                $i++;   // Version
+                break;
+        }
+        
         //No Will
         $var = 0;
         if ($clean) {
@@ -300,7 +326,7 @@ class phpMQTT
         $buffer .= chr($qos);
         $i++;
 
-        $cmd = 0x80;  // => 'subscribe'
+        $cmd = 0x82;  // => 'subscribe'
         //$qos
         $cmd += ($qos << 1);
 

@@ -53,6 +53,8 @@ class MQTTClient extends IPSModule
         $this->RegisterPropertyInteger('ModuleType', 2);
         $this->RegisterPropertyInteger('script', 0);
         $this->RegisterPropertyBoolean('TLS', False);
+        $this->RegisterPropertyBoolean('AutoSubscribe', True);
+        $this->RegisterPropertyInteger('MQTTVersion', phpMQTT::MQTT_VERSION_311);
 
         $this->RegisterPropertyInteger('PingInterval', 30);
         $this->RegisterTimer('MQTTC_Ping', 0, 'MQTTC_Ping($_IPS[\'TARGET\']);');
@@ -72,8 +74,11 @@ class MQTTClient extends IPSModule
         if ($cID != 0) {
             $this->RegisterMessage($cID, IM_CHANGESTATUS);
             if (IPS_GetProperty($cID, 'Host') != null && IPS_GetProperty($cID, 'Port') != 0) {
-                IPS_SetProperty($cID, 'Open', true);
-                IPS_ApplyChanges($cID);
+                set_error_handler([$this, 'onConnectError']);
+                if(IPS_SetProperty($cID, 'Open', true)){
+                    IPS_ApplyChanges($cID);
+                }
+                restore_error_handler();
             }
         }
 
@@ -100,9 +105,11 @@ class MQTTClient extends IPSModule
                             $this->State = TLSState::Init;
                             $this->Multi_TLS = NULL;
                             IPS_Sleep(500);
-                            if($this->ReadPropertyBoolean('TLS')) if(!$this->CreateTLSConnection()){
-                                $this->SendDebug(__FUNCTION__, 'TLS > Fehler', 0);
-                                return;
+                            if($this->ReadPropertyBoolean('TLS')){
+                                if(!$this->CreateTLSConnection()){
+                                    $this->SendDebug(__FUNCTION__, 'TLS > Fehler', 0);
+                                    return;
+                                }
                             }
                             if (is_null($this->mqtt)) {
                                 $this->MQTTConnect();
@@ -267,13 +274,16 @@ class MQTTClient extends IPSModule
      * Reconnect parent socket
      * @param bool $force
      */
-    public function Reconnect($force = false)
+    public function Reconnect(bool $force = false)
     {
         $this->SendDebug(__FUNCTION__, "Force: $force", 0);
-        $ParentID = $this->GetConnectionID();
-        if (($this->HasActiveParent() || $force) && $ParentID > 0) {
-            IPS_SetProperty($ParentID, 'Open', true);
-            IPS_ApplyChanges($ParentID);
+        $cID = $this->GetConnectionID();
+        if (($this->HasActiveParent() || $force) && $cID > 0) {
+            set_error_handler([$this, 'onConnectError']);
+                if(IPS_SetProperty($cID, 'Open', true)){
+                    IPS_ApplyChanges($cID);
+                }
+                restore_error_handler();
         }
     }
 
@@ -384,6 +394,21 @@ class MQTTClient extends IPSModule
         }
     }
 
+    public function onConnectError(int $errno , string $errstr, string $errfile, int $errline, array $errcontext)
+    {
+        switch($errno){
+            case E_NOTICE:
+                return true;
+
+            case E_WARNING:
+                $this->LogMessage("Connect failed ($errstr)", KL_WARNING);
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     public function onSendText(string $Data)
     {
         $res = false;
@@ -415,12 +440,12 @@ class MQTTClient extends IPSModule
         return $res;
     }
 
-    public function onDebug(string $topic, string $data, $Format = 0)
+    public function onDebug(string $topic, string $data, int $Format = 0)
     {
         $this->SendDebug($topic, $data, $Format);
     }
 
-    public function onReceive($para)
+    public function onReceive(array $para)
     {
         //if Script oder Forward
         if ($this->ReadPropertyInteger('ModuleType') == 1) {
@@ -429,6 +454,10 @@ class MQTTClient extends IPSModule
         }
 
         if ($this->ReadPropertyInteger('ModuleType') == 2) {
+            if ($para['SENDER'] == 'MQTT_CONNECT' && $this->ReadPropertyBoolean('AutoSubscribe')) {
+                $this->Subscribe('#', 0);
+            }
+
             $JSON['DataID'] = '{DBDA9DF7-5D04-F49D-370A-2B9153D00D9B}';
             $JSON['Buffer'] = json_encode($para, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
@@ -445,7 +474,7 @@ class MQTTClient extends IPSModule
         }
     }
 
-    public function Publish(string $topic, string $content, $qos = 0, $retain = 0)
+    public function Publish(string $topic, string $content, int $qos = 0, int $retain = 0)
     {
         if (!is_null($this->mqtt)) {
             $this->mqtt->publish($topic, $content, $qos, $retain);
@@ -454,7 +483,7 @@ class MQTTClient extends IPSModule
         }
     }
 
-    public function Subscribe(string $topic, $qos = 0)
+    public function Subscribe(string $topic, int $qos = 0)
     {
         if (!is_null($this->mqtt)) {
             $this->mqtt->subscribe($topic, $qos);
@@ -499,7 +528,7 @@ class MQTTClient extends IPSModule
                 $this->mqtt->onDebug = 'onDebug';
                 $this->mqtt->onReceive = 'onReceive';
                 $this->mqtt->debug = true;
-                if ($this->mqtt->connect(true, null, $username, $password)) {
+                if ($this->mqtt->connect(true, null, $username, $password, $this->ReadPropertyInteger('MQTTVersion'))) {
                     $this->LogMessage('Connected to ClientID ' . $clientid, KL_NOTIFY);
                     $this->OSave($this->mqtt, 'MQTT');
                     IPS_Sleep(500);

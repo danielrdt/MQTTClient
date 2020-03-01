@@ -56,6 +56,57 @@ Es werden alle Nachrichten in das Log von IP-Symcon geschrieben.
 | TX | {97475B04-67C3-A74D-C970-E9409B0EFA1D}  |
 | RX | {DBDA9DF7-5D04-F49D-370A-2B9153D00D9B}  |
 
+#### Auto Subscribe #
+
+Wenn der Modul Typ Forward aktiviert ist, kann über die Konfigurationsoption "Nach Verbindungsaufbau automatisch # abonnieren" automatisch das Topic # abonniert werden.
+Dies stellt im wesentlichen die Rückwärtskompatibilität zu älteren Modulen her.
+
+#### Subscribe durch Modul
+
+Um von einem Child Modul eine Subscription auszulösen kann vom Child Modul folgendender Befehl an den Parent (MQTTClient) gesendet werden:
+```php
+    $cmd = json_encode([
+        'Function'  => 'Subscribe',
+        'Topic'     => 'topic/to/subsribe'
+    ]);
+    $json = json_encode([
+        'DataID'    => '{97475B04-67C3-A74D-C970-E9409B0EFA1D}',
+        'Buffer'    => utf8_encode($cmd)
+    ]);
+    parent::SendDataToParent($json);
+```
+
+um zu publishen kann folgender Code verweendet werden:
+```php
+    $cmd = json_encode([
+        'Function'  => 'Publish',
+        'Topic'     => 'topic/to/publish',
+        'Payload'   => 'Payload',
+        'Retain'    => 0
+    ]);
+    $json = json_encode([
+        'DataID'    => '{97475B04-67C3-A74D-C970-E9409B0EFA1D}',
+        'Buffer'    => utf8_encode($cmd)
+    ]);
+    parent::SendDataToParent($json);
+```
+
+Fehlt die Angabe der "Function" so wird wie in alten Versionen ein Publish gesendet.
+
+### 4.3 TLS
+
+Durch aktivieren der TLS Option wird nach dem Verbindungsaufbau ein TLS Handshake durchgeführt. Dies basiert auf der PTLS Library (Copyright (c) 2016 Ryohei Nagatsuka) welches dem [HomeConnectSymcon](https://github.com/hermanthegerman2/HomeConnectSymcon) Modul entnommen ist.
+
+### 4.4 Ping Intervall
+
+Ist das Ping Intervall > 0 wird alle X Sekunden ein MQTT PINGREQ gesendet
+
+### 4.5 MQTT Version
+
+Das zugrunde liegende phpMQTT Modul beherrscht nur die MQTT Version 3.1 - dies wurde um die Version 3.1.1 erweitert. Über die Konfiguration kann man auswählen welche Version genutzt werden soll (beim Handshake).
+
+Die Erweiterung auf 3.1.1 wurde nicht intensiv getestet, funktioniert aber für die Basisfunktionen Subscribe und Publish augenscheinlich zuverlässig (die Protokollunterschiede scheinen auch marginal zu sein).
+
 ## 5 Funktionen
 
 **MQTTC_Publish(string $Topic, string $payload, $qos, $retain)**
