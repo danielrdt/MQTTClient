@@ -99,7 +99,7 @@ class phpMQTT
 
         $buffer .= chr(0x00);
         $i++;
-        switch($version){
+        switch ($version) {
             case phpMQTT::MQTT_VERSION_31:
                 $buffer .= chr(0x06);
                 $i++;
@@ -239,7 +239,7 @@ class phpMQTT
 
             switch ($cmd) {
                     case 2:         // CONNACK, Connect acknowledgment
-                        switch($string[1]) {
+                        switch ($string[1]) {
                             case chr(0):
                                 if ($this->debug) {
                                     $call = $this->onDebug;

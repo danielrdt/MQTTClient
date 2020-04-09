@@ -75,8 +75,10 @@ class Finished extends HandshakeAbstract
         $verifyData = $this->getVerifyData($core->isServer ^ true, $handshakeMessages);
 
         if ($this->verifyData != $verifyData) {
-            throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC),
-                "Handshake Finished: verifyData mismatched:" . base64_encode($this->verifyData) . "<=>" . base64_encode($verifyData));
+            throw new TLSAlertException(
+                Alert::create(Alert::BAD_RECORD_MAC),
+                "Handshake Finished: verifyData mismatched:" . base64_encode($this->verifyData) . "<=>" . base64_encode($verifyData)
+            );
         }
     }
 

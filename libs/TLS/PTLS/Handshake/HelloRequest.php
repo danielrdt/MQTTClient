@@ -20,8 +20,10 @@ class HelloRequest extends HandshakeAbstract
         $data = $this->encodeHeader($data);
 
         if ($core->isServer) {
-            throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE),
-                "Server received Hello Request");
+            throw new TLSAlertException(
+                Alert::create(Alert::UNEXPECTED_MESSAGE),
+                "Server received Hello Request"
+            );
         } else {
             // We don't re-negotiate
             throw new TLSAlertException(Alert::create(Alert::NO_RENEGOTIATION), "No renegotiation");

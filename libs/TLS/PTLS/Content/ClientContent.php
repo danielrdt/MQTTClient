@@ -45,8 +45,10 @@ class ClientContent extends ContentAbstract
         $extensions = $core->extensions;
 
         if ($core->isHandshaked) {
-            throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE),
-                "Handshake message received after handshake is complete");
+            throw new TLSAlertException(
+                Alert::create(Alert::UNEXPECTED_MESSAGE),
+                "Handshake message received after handshake is complete"
+            );
         }
         /*
          * https://tools.ietf.org/html/rfc5246#section-7.4
@@ -56,8 +58,10 @@ class ClientContent extends ContentAbstract
         $handshakeType = Core::_unpack('C', $payload[0]);
 
         if ($this->expectedHandshakeType != $handshakeType) {
-            throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE),
-                "Unexpected handshake message: $handshakeType <=> " . $this->expectedHandshakeType);
+            throw new TLSAlertException(
+                Alert::create(Alert::UNEXPECTED_MESSAGE),
+                "Unexpected handshake message: $handshakeType <=> " . $this->expectedHandshakeType
+            );
         }
 
         $handshake = HandshakeFactory::getInstance($core, $handshakeType);

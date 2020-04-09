@@ -176,15 +176,19 @@ class Curve extends ExtensionAbstract
         $curveType = Core::_unpack('C', $data[0]);
 
         if ($curveType != 0x03) {
-            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR),
-                "Not named curve type: " + $curveType);
+            throw new TLSAlertException(
+                Alert::create(Alert::INTERNAL_ERROR),
+                "Not named curve type: " + $curveType
+            );
         }
 
         $namedCurveType = Core::_unpack('n', $data[1] . $data[2]);
 
         if (!EcDH::isSupported($namedCurveType)) {
-            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR),
-                "Unknow named curve: " + $namedCurveType);
+            throw new TLSAlertException(
+                Alert::create(Alert::INTERNAL_ERROR),
+                "Unknow named curve: " + $namedCurveType
+            );
         }
 
         $this->namedCurveType = $namedCurveType;

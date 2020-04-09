@@ -13,7 +13,7 @@ trait TableHelper
      */
     protected function convertDataTables($data = [])
     {
-        foreach ($data AS &$values) {
+        foreach ($data as &$values) {
             if (isset($values['table'])) {
                 $prepend = isset($values['prepend']) ? $values['prepend'] : '';
 
@@ -36,7 +36,7 @@ trait TableHelper
 			<table class="cktable" cellpadding="0" cellspacing="0" width="100%">
 				<tr class="th">
 EOF;
-                foreach ($values['table']['head'] AS $th) {
+                foreach ($values['table']['head'] as $th) {
                     $options = '';
                     if (is_array($th)) {
                         $options = ' ' . $th[1];
@@ -49,9 +49,9 @@ EOF;
                 $html .= '</tr>';
 
                 // build table body
-                foreach ($values['table']['body'] AS $tr) {
+                foreach ($values['table']['body'] as $tr) {
                     $html .= '<tr>';
-                    foreach ($tr AS $td) {
+                    foreach ($tr as $td) {
                         $options = '';
                         if (is_array($td)) {
                             $options = ' ' . $td[1];

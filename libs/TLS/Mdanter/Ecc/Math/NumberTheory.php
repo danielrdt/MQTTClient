@@ -232,12 +232,12 @@ class NumberTheory
 
             for ($b = gmp_init(2, 10); $math->cmp($b, $p) < 0; $b = gmp_add($b, gmp_init(1, 10))) {
                 if ($math->jacobi(
-                        $math->sub(
-                            $math->mul($b, $b),
-                            $math->mul($four, $a)
-                        ),
-                        $p
-                    ) == -1
+                    $math->sub(
+                        $math->mul($b, $b),
+                        $math->mul($four, $a)
+                    ),
+                    $p
+                ) == -1
                 ) {
                     $f = [$a, $math->sub($zero, $b), $one];
 

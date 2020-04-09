@@ -36,7 +36,7 @@ class Module extends IPSModule
 
         // remove instance profiles
         $profiles = IPS_GetVariableProfileList();
-        foreach ($profiles AS $profile) {
+        foreach ($profiles as $profile) {
             if (strstr($profile, $this->prefix . '.' . $this->InstanceID)) {
                 IPS_DeleteVariableProfile($profile);
             }

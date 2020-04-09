@@ -93,8 +93,10 @@ class BlockCipherRecord extends Record
         $MAC2 = $this->calculateMAC();
 
         if ($MAC != $MAC2) {
-            throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC),
-                "Mismatch MAC Record " . base64_encode($MAC) . "<=>" . base64_encode($MAC2));
+            throw new TLSAlertException(
+                Alert::create(Alert::BAD_RECORD_MAC),
+                "Mismatch MAC Record " . base64_encode($MAC) . "<=>" . base64_encode($MAC2)
+            );
         }
 
         $this->incrementSeq();

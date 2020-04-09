@@ -40,8 +40,10 @@ class ServerContent extends ContentAbstract
         $handshakeType = Core::_unpack('C', $payload[0]);
 
         if ($core->isHandshaked) {
-            throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE),
-                "Handshake message received after handshake is complete: $handshakeType");
+            throw new TLSAlertException(
+                Alert::create(Alert::UNEXPECTED_MESSAGE),
+                "Handshake message received after handshake is complete: $handshakeType"
+            );
         }
 
         if ($this->expectedHandshakeType != $handshakeType) {

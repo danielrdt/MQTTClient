@@ -149,7 +149,8 @@ class EcDH
             return $this->privateKey;
         }
 
-        $gen = $this->getGenerator();;
+        $gen = $this->getGenerator();
+        ;
 
         $this->privateKey = $gen->createPrivateKey();
 
