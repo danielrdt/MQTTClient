@@ -4,9 +4,21 @@ declare(strict_types=1);
 
 include_once __DIR__ . '/../libs//TFphpMQTT.php';
 
+define('__ROOT__', dirname(dirname(__FILE__)));
+require_once(__ROOT__ . '/libs/helpers/autoload.php');
+require_once(__ROOT__ . '/libs/TLS/autoloader.php');
+
+use PTLS\TLSContext;
+use PTLS\Exceptions\TLSAlertException;
+
 class MQTTClient extends IPSModule
 {
+    use BufferHelper;
+
+    const guid_socket = '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}';
+
     private $mqtt;
+    private $tls_loop = 0;
 
     public function __construct($InstanceID)
     {
@@ -40,11 +52,17 @@ class MQTTClient extends IPSModule
         $this->RegisterPropertyString('Password', '');
         $this->RegisterPropertyInteger('ModuleType', 2);
         $this->RegisterPropertyInteger('script', 0);
+        $this->RegisterPropertyBoolean('TLS', False);
+        $this->RegisterPropertyBoolean('AutoSubscribe', True);
+        $this->RegisterPropertyInteger('MQTTVersion', phpMQTT::MQTT_VERSION_311);
 
         $this->RegisterPropertyInteger('PingInterval', 30);
         $this->RegisterTimer('MQTTC_Ping', 0, 'MQTTC_Ping($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('MQTTC_Reconnect', 0, 'MQTTC_Reconnect($_IPS[\'TARGET\'], true);');
 
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
+
+        $this->State = TLSState::Init;
     }
 
     public function ApplyChanges()
@@ -56,8 +74,11 @@ class MQTTClient extends IPSModule
         if ($cID != 0) {
             $this->RegisterMessage($cID, IM_CHANGESTATUS);
             if (IPS_GetProperty($cID, 'Host') != null && IPS_GetProperty($cID, 'Port') != 0) {
-                IPS_SetProperty($cID, 'Open', true);
-                IPS_ApplyChanges($cID);
+                set_error_handler([$this, 'onConnectError']);
+                if(IPS_SetProperty($cID, 'Open', true)){
+                    IPS_ApplyChanges($cID);
+                }
+                restore_error_handler();
             }
         }
 
@@ -76,31 +97,47 @@ class MQTTClient extends IPSModule
                 $this->UnSubscribe($SenderID);
                 break;
             case IM_CHANGESTATUS:
-                switch ($Data[0]) {
-                    case 102:
-                        $this->SendDebug(__FUNCTION__, 'I/O Modul > Aktiviert', 0);
-                        IPS_Sleep(500);
-                        if (is_null($this->mqtt)) {
-                            $this->MQTTConnect();
-                        }
-                        break;
-                    case 104:
-                        $this->SendDebug(__FUNCTION__, 'I/O Modul > Deaktiviert', 0);
-                        if ($this->GetStatus() == 102) {
-                            $this->MQTTDisconnect();
-                        }
-                        break;
-                    case 200:
-                        $this->SendDebug(__FUNCTION__, 'I/O Modul > Fehler', 0);
-                        $this->MQTTDisconnect();
-                        IPS_Sleep(500);
-                        if ($this->HasActiveParent()) {
-                            $this->MQTTConnect();
-                        }
-                        break;
-                    default:
-                        $this->SendDebug(__FUNCTION__, 'I/O Modul unbekantes Ereignis ' . $Data[0], 0);
-                        break;
+                if($SenderID === $this->GetConnectionID()){
+                    switch ($Data[0]) {
+                        case 102:
+                            $this->SetTimerInterval('MQTTC_Reconnect', 0);
+                            $this->SendDebug(__FUNCTION__, 'I/O Modul > Aktiviert', 0);
+                            $this->State = TLSState::Init;
+                            $this->Multi_TLS = NULL;
+                            IPS_Sleep(500);
+                            if($this->ReadPropertyBoolean('TLS')){
+                                if(!$this->CreateTLSConnection()){
+                                    $this->SendDebug(__FUNCTION__, 'TLS > Fehler', 0);
+                                    return;
+                                }
+                            }
+                            if (is_null($this->mqtt)) {
+                                $this->MQTTConnect();
+                            }
+                            break;
+                        case 104:
+                            $this->SendDebug(__FUNCTION__, 'I/O Modul > Deaktiviert', 0);
+                            if ($this->GetStatus() == 102) {
+                                $this->MQTTDisconnect();
+                            }
+                            $this->State = TLSState::Init;
+                            $this->Multi_TLS = NULL;
+                            break;
+                        case 200:
+                            $this->SendDebug(__FUNCTION__, 'I/O Modul > Fehler', 0);
+                            if ($this->GetStatus() == 102) {
+                                $this->MQTTDisconnect();
+                            }
+                            $this->State = TLSState::Init;
+                            $this->Multi_TLS = NULL;
+                            IPS_Sleep(500);
+                            $this->SetTimerInterval('MQTTC_Reconnect', 5000);
+                            $this->SendDebug(__FUNCTION__, 'Enabled reconnect in 5s', 0);
+                            break;
+                        default:
+                            $this->SendDebug(__FUNCTION__, 'I/O Modul unbekantes Ereignis ' . $Data[0], 0);
+                            break;
+                    }
                 }
                 break;
             case IPS_KERNELSTARTED:
@@ -124,12 +161,206 @@ class MQTTClient extends IPSModule
                 break;
         }
     }
+
+/**
+     * Init TLS connection to client socket
+     * @return bool
+     */
+    private function CreateTLSConnection()
+    {
+        // return true, if event channel is still connected
+        if ($this->State == TLSState::Connected && $this->Multi_TLS) {
+            return true;
+        }
+
+        // reset state
+        $this->State = TLSState::TLSisSend;
+
+        // init tls config
+        $TLSconfig = TLSContext::getClientConfig([]);
+        $TLS = TLSContext::createTLS($TLSconfig);
+
+        $this->SendDebug('TLS start', '', 0);
+        $loop = 1;
+        $SendData = $TLS->decode();
+        $this->SendDebug("Send TLS Handshake", '', 0);
+
+        // send handshake data
+        $JSON['DataID'] = self::guid_socket;
+        $JSON['Buffer'] = utf8_encode($SendData);
+        $JSON['Method'] = 'socket';
+
+        $JsonString = json_encode($JSON);
+        parent::SendDataToParent($JsonString);
+
+        // check TLS handshake
+        while (!$TLS->isHandshaked() && ($loop < 10)) {
+            $loop++;
+            $Result = $this->WaitForResponse(TLSState::TLSisReceived);
+            if ($Result === false) {
+                $this->SendDebug('TLS no answer', '', 0);
+
+                if ($this->tls_loop < 2) {
+                    $this->tls_loop++;
+                    $this->SetTimerInterval('MQTTC_Reconnect', 1000);
+                } else {
+                    $this->State = TLSState::Init;
+                }
+                break;
+            }
+
+            $this->tls_loop = 0;
+            $this->State = TLSState::TLSisSend;
+            $this->SendDebug('Get TLS Handshake', $Result, 0);
+            try {
+                $TLS->encode($Result);
+                if ($TLS->isHandshaked()) {
+                    break;
+                }
+            } catch (TLSAlertException $e) {
+                $this->SendDebug('TLS Error', $e->getMessage(), 0);
+
+                // retry
+                try {
+                    if (strlen($out = $e->decode())) {
+                        $JSON['DataID'] = self::guid_socket;
+                        $JSON['Buffer'] = utf8_encode($SendData);
+                        $JsonString = json_encode($JSON);
+                        parent::SendDataToParent($JsonString);
+                    }
+                } catch (Exception $e) {
+
+                }
+
+                return false;
+            }
+
+            // loop handshake
+            $SendData = $TLS->decode();
+            if (strlen($SendData) > 0) {
+                $this->SendDebug('TLS loop ' . $loop, $SendData, 0);
+                $JSON['DataID'] = self::guid_socket;
+                $JSON['Buffer'] = utf8_encode($SendData);
+                $JsonString = json_encode($JSON);
+                parent::SendDataToParent($JsonString);
+            } else {
+                $this->SendDebug('TLS waiting loop ' . $loop, $SendData, 0);
+            }
+        }
+
+        // check if handshake was successfull
+        if (!$TLS->isHandshaked()) {
+            return false;
+        }
+
+        $this->Multi_TLS = $TLS;
+
+        // debug
+        $this->SendDebug('TLS ProtocolVersion', $TLS->getDebug()->getProtocolVersion(), 0);
+        $UsingCipherSuite = explode("\n", $TLS->getDebug()->getUsingCipherSuite());
+        unset($UsingCipherSuite[0]);
+        foreach ($UsingCipherSuite as $Line) {
+            $this->SendDebug(trim(substr($Line, 0, 14)), trim(substr($Line, 15)), 0);
+        }
+
+        // change state
+        $this->State = TLSState::Connected;
+
+        // handshake was successful! :)
+        return true;
+    }
+
+    /**
+     * Reconnect parent socket
+     * @param bool $force
+     */
+    public function Reconnect(bool $force = false)
+    {
+        $this->SendDebug(__FUNCTION__, "Force: $force", 0);
+        $cID = $this->GetConnectionID();
+        if (($this->HasActiveParent() || $force) && $cID > 0) {
+            set_error_handler([$this, 'onConnectError']);
+                if(IPS_SetProperty($cID, 'Open', true)){
+                    IPS_ApplyChanges($cID);
+                }
+                restore_error_handler();
+        }
+    }
+
+    /**
+     * Waits for client socket response
+     * @param int $State
+     * @return bool|string
+     */
+    private function WaitForResponse(int $State)
+    {
+        for ($i = 0; $i < 500; $i++) {
+            if ($this->State == $State) {
+                $Handshake = $this->Handshake;
+                $this->Handshake = '';
+                return $Handshake;
+            }
+            IPS_Sleep(5);
+        }
+        return false;
+    }
+
     public function ReceiveData($JSONString)
     {
-        if (!is_null($this->mqtt)) {
-            $data = json_decode($JSONString);
-            $buffer = utf8_decode($data->Buffer);
+        // convert json data to array
+        $data = json_decode($JSONString);
+        $buffer = utf8_decode($data->Buffer);
 
+        if($this->ReadPropertyBoolean('TLS')){
+            // check for TLS handshake
+            if ($this->State == TLSState::TLSisSend || $this->State == TLSState::TLSisReceived) {
+                $this->WaitForResponse(TLSState::TLSisSend);
+                $this->SendDebug('Receive TLS Handshake', $buffer, 0);
+                $this->Handshake = $buffer;
+
+                $this->State = TLSState::TLSisReceived;
+                return;
+            }
+
+            if (!$this->Multi_TLS || $this->State != TLSState::Connected) {
+                return;
+            }
+
+            // decrypt TLS data
+            if ((ord($buffer[0]) >= 0x14) && (ord($buffer[0]) <= 0x18) && (substr($buffer, 1, 2) == "\x03\x03")) {
+                $TLSData = $buffer;
+                $buffer = '';
+                $TLS = $this->Multi_TLS;
+                while (strlen($TLSData) > 0) {
+                    $len = unpack("n", substr($TLSData, 3, 2))[1] + 5;
+                    if (strlen($TLSData) >= $len) {
+                        try {
+                            $Part = substr($TLSData, 0, $len);
+                            $TLSData = substr($TLSData, $len);
+                            $TLS->encode($Part);
+                            $buffer .= $TLS->input();
+                        } catch (Exception $e) {
+                            $this->SendDebug('TLS Error', $e->getMessage(), 0);
+                            $this->SetTimerInterval('MQTTC_Reconnect', 1000);
+                            return;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                $this->Multi_TLS = $TLS;
+                if (strlen($TLSData) > 0) {
+                    $this->SendDebug('Receive TLS Part', $TLSData, 0);
+                }
+            } else { // buffer does not match
+                return;
+            }
+        }
+
+        $this->SendDebug('ReceiveData', $buffer, 0);
+
+        if (!is_null($this->mqtt)) {
             $this->mqtt->receive($buffer);
             $sClass = serialize($this->mqtt);
             $this->SetBuffer('MQTT', $sClass);
@@ -147,14 +378,57 @@ class MQTTClient extends IPSModule
         $data = json_decode($JSONString);
         $Buffer = utf8_decode($data->Buffer);
         $Buffer = json_decode($Buffer);
-        $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
+        if(!isset($Buffer->Function)){
+            $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
+            return;
+        }
+
+        switch($Buffer->Function){
+            case 'Subscribe':
+                $this->Subscribe($Buffer->Topic, 0);
+            break;
+
+            case 'Publish':
+                $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
+            break;
+        }
+    }
+
+    public function onConnectError(int $errno , string $errstr, string $errfile, int $errline, array $errcontext)
+    {
+        switch($errno){
+            case E_NOTICE:
+                return true;
+
+            case E_WARNING:
+                $this->LogMessage("Connect failed ($errstr)", KL_WARNING);
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     public function onSendText(string $Data)
     {
         $res = false;
+
+        if(!$this->HasActiveParent()){
+            $this->SendDebug(__FUNCTION__, 'No active Parent', 0);
+            $this->SetTimerInterval('MQTTC_Ping', 0);
+            return $res;
+        }
+        
+        if($this->ReadPropertyBoolean('TLS')){
+            // encrypt data
+            $TLS = $this->Multi_TLS;
+            $this->SendDebug('Send TLS', $Data, 0);
+            $Data = $TLS->output($Data)->decode();
+            $this->Multi_TLS = $TLS;
+        }
+
         $json = json_encode(
-            ['DataID'    => '{79827379-F36E-4ADA-8A95-5F8D1DC92FA9}', //IO-TX
+            ['DataID'    => self::guid_socket, //IO-TX
                 'Buffer' => utf8_encode($Data)]
         );
         if ($this->HasActiveParent()) {
@@ -166,12 +440,12 @@ class MQTTClient extends IPSModule
         return $res;
     }
 
-    public function onDebug(string $topic, string $data, $Format = 0)
+    public function onDebug(string $topic, string $data, int $Format = 0)
     {
         $this->SendDebug($topic, $data, $Format);
     }
 
-    public function onReceive($para)
+    public function onReceive(array $para)
     {
         //if Script oder Forward
         if ($this->ReadPropertyInteger('ModuleType') == 1) {
@@ -180,7 +454,7 @@ class MQTTClient extends IPSModule
         }
 
         if ($this->ReadPropertyInteger('ModuleType') == 2) {
-            if ($para['SENDER'] == 'MQTT_CONNECT') {
+            if ($para['SENDER'] == 'MQTT_CONNECT' && $this->ReadPropertyBoolean('AutoSubscribe')) {
                 $this->Subscribe('#', 0);
             }
 
@@ -200,7 +474,7 @@ class MQTTClient extends IPSModule
         }
     }
 
-    public function Publish(string $topic, string $content, $qos = 0, $retain = 0)
+    public function Publish(string $topic, string $content, int $qos = 0, int $retain = 0)
     {
         if (!is_null($this->mqtt)) {
             $this->mqtt->publish($topic, $content, $qos, $retain);
@@ -209,7 +483,7 @@ class MQTTClient extends IPSModule
         }
     }
 
-    public function Subscribe(string $topic, $qos = 0)
+    public function Subscribe(string $topic, int $qos = 0)
     {
         if (!is_null($this->mqtt)) {
             $this->mqtt->subscribe($topic, $qos);
@@ -254,7 +528,7 @@ class MQTTClient extends IPSModule
                 $this->mqtt->onDebug = 'onDebug';
                 $this->mqtt->onReceive = 'onReceive';
                 $this->mqtt->debug = true;
-                if ($this->mqtt->connect(true, null, $username, $password)) {
+                if ($this->mqtt->connect(true, null, $username, $password, $this->ReadPropertyInteger('MQTTVersion'))) {
                     $this->LogMessage('Connected to ClientID ' . $clientid, KL_NOTIFY);
                     $this->OSave($this->mqtt, 'MQTT');
                     IPS_Sleep(500);

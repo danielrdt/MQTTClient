@@ -7,7 +7,11 @@
         "Script": "Script",
         "Forward": "Weiterleitung (Forward)",
         "MQTT ClientID": "MQTT ClientID",
-        "Handle Script": "Handle Script"
+        "Handle Script": "Handle Script",
+        "TLS": "TLS",
+        "Ping Interval": "Ping Intervall",
+        "Auto Subscribe Topic # on connect": "Nach Verbindungsaufbau automatisch # abonnieren",
+        "MQTT Version": "MQTT Version"
       }
     }
   }
