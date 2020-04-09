@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc;
 
 use Mdanter\Ecc\Crypto\Signature\Signer;

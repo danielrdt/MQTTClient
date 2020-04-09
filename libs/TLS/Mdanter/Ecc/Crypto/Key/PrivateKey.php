@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Crypto\Key;
 
 /**
@@ -25,7 +27,6 @@ namespace Mdanter\Ecc\Crypto\Key;
  * OTHER DEALINGS IN THE SOFTWARE.
  * ***********************************************************************
  */
-
 use Mdanter\Ecc\Crypto\EcDH\EcDH;
 use Mdanter\Ecc\Math\GmpMathInterface;
 use Mdanter\Ecc\Primitives\GeneratorPoint;

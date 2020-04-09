@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Trait TableHelper
  * convert data array to optimized html table

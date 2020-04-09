@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /**
  * Set constants below IP-Symcon 5
  */

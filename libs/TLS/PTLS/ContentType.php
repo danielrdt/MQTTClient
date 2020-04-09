@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS;
 
 /**
@@ -25,15 +27,15 @@ class ContentType
     {
         switch ($type) {
             case self::CHANGE_CIPHER_SPEC:
-                return "CHANGE_CIPHER_SPEC";
+                return 'CHANGE_CIPHER_SPEC';
             case self::ALERT:
-                return "ALERT";
+                return 'ALERT';
             case self::HANDSHAKE:
-                return "HANDSHAKE";
+                return 'HANDSHAKE';
             case self::APPLICATION_DATA:
-                return "APPLICATION_DATA";
+                return 'APPLICATION_DATA';
         }
 
-        return "UNKNOWN";
+        return 'UNKNOWN';
     }
 }

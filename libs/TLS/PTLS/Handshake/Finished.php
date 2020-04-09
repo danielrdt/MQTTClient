@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Handshake;
 
+use PTLS\Content\Alert;
 use PTLS\Core;
 use PTLS\Exceptions\TLSAlertException;
-use PTLS\Content\Alert;
 
 class Finished extends HandshakeAbstract
 {
@@ -15,13 +17,67 @@ class Finished extends HandshakeAbstract
         parent::__construct($core);
     }
 
+    public function encode($data)
+    {
+        $core = $this->core;
+
+        $data = $this->encodeHeader($data);
+
+        /*
+         * https://tools.ietf.org/html/rfc5246#section-7.4.9
+         *
+         * Note that this
+         * representation has the same encoding as with previous versions.
+         * Future cipher suites MAY specify other lengths but such length
+         * MUST be at least 12 bytes.
+         */
+        $this->verifyData = substr($data, 0, $this->length);
+
+        // Get all handshakeMessages excluding this message
+        $handshakeMessages = $core->getHandshakeMessages(1);
+
+        // Get verify data
+        $verifyData = $this->getVerifyData($core->isServer ^ true, $handshakeMessages);
+
+        if ($this->verifyData != $verifyData) {
+            throw new TLSAlertException(
+                Alert::create(Alert::BAD_RECORD_MAC),
+                'Handshake Finished: verifyData mismatched:' . base64_encode($this->verifyData) . '<=>' . base64_encode($verifyData)
+            );
+        }
+    }
+
+    public function decode()
+    {
+        $core = $this->core;
+
+        $handshakeMessages = $core->getHandshakeMessages();
+
+        $verifyData = $this->getVerifyData($core->isServer, $handshakeMessages);
+
+        $this->msgType = 20;
+        $this->length = strlen($verifyData);
+        return $this->getBinHeader() . $verifyData;
+    }
+
+    public function debugInfo()
+    {
+        /*
+         * struct {
+         *  opaque verify_data[verify_data_length];
+         *  } Finished;
+         */
+        return "[HandshakeType::Finished]\n"
+            . 'Verify Data: ' . base64_encode($this->verifyData) . "\n";
+    }
+
     private function getVerifyData($isServer = false, $handshakeMessages)
     {
         $core = $this->core;
 
         $protoVersion = $core->getProtocolVersion();
 
-        $finishedLabel = ($isServer) ? "server finished" : "client finished";
+        $finishedLabel = ($isServer) ? 'server finished' : 'client finished';
         $prf = $core->prf;
 
         /*
@@ -50,59 +106,5 @@ class Finished extends HandshakeAbstract
         $verifyData = $prf->prf(self::PRF_LENGTH, $masterSecret, $finishedLabel, $seedHash);
 
         return $verifyData;
-    }
-
-    public function encode($data)
-    {
-        $core = $this->core;
-
-        $data = $this->encodeHeader($data);
-
-        /*
-         * https://tools.ietf.org/html/rfc5246#section-7.4.9
-         *
-         * Note that this
-         * representation has the same encoding as with previous versions.
-         * Future cipher suites MAY specify other lengths but such length
-         * MUST be at least 12 bytes.
-         */
-        $this->verifyData = substr($data, 0, $this->length);
-
-        // Get all handshakeMessages excluding this message
-        $handshakeMessages = $core->getHandshakeMessages(1);
-
-        // Get verify data
-        $verifyData = $this->getVerifyData($core->isServer ^ true, $handshakeMessages);
-
-        if ($this->verifyData != $verifyData) {
-            throw new TLSAlertException(
-                Alert::create(Alert::BAD_RECORD_MAC),
-                "Handshake Finished: verifyData mismatched:" . base64_encode($this->verifyData) . "<=>" . base64_encode($verifyData)
-            );
-        }
-    }
-
-    public function decode()
-    {
-        $core = $this->core;
-
-        $handshakeMessages = $core->getHandshakeMessages();
-
-        $verifyData = $this->getVerifyData($core->isServer, $handshakeMessages);
-
-        $this->msgType = 20;
-        $this->length = strlen($verifyData);
-        return $this->getBinHeader() . $verifyData;
-    }
-
-    public function debugInfo()
-    {
-        /*
-         * struct {
-         *  opaque verify_data[verify_data_length];
-         *  } Finished;
-         */
-        return "[HandshakeType::Finished]\n"
-            . "Verify Data: " . base64_encode($this->verifyData) . "\n";
     }
 }

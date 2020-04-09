@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * The MIT License (MIT)
  *
@@ -57,7 +59,61 @@ final class AESGCM
      */
     public static function encryptAndAppendTag($K, $IV, $P = null, $A = null, $tag_length = 128)
     {
-        return implode(self::encrypt($K, $IV, $P, $A, $tag_length));
+        return implode('', self::encrypt($K, $IV, $P, $A, $tag_length));
+    }
+
+    /**
+     * @param string $K Key encryption key
+     * @param string $IV Initialization vector
+     * @param string|null $C Data to encrypt (null for authentication)
+     * @param string|null $A Additional Authentication Data
+     * @param string $T Tag
+     *
+     * @return string
+     */
+    public static function decrypt($K, $IV, $C, $A, $T)
+    {
+        Assertion::string($K, 'The key encryption key must be a binary string.');
+        $key_length = mb_strlen($K, '8bit') * 8;
+        Assertion::inArray($key_length, [128, 192, 256], 'Bad key encryption key length.');
+        Assertion::string($IV, 'The Initialization Vector must be a binary string.');
+        Assertion::nullOrString($C, 'The data to encrypt must be null or a binary string.');
+        Assertion::nullOrString($A, 'The Additional Authentication Data must be null or a binary string.');
+
+        $tag_length = self::getLength($T);
+        Assertion::integer($tag_length, 'Invalid tag length. Supported values are: 128, 120, 112, 104 and 96.');
+        Assertion::inArray($tag_length, [128, 120, 112, 104, 96], 'Invalid tag length. Supported values are: 128, 120, 112, 104 and 96.');
+
+        if (version_compare(PHP_VERSION, '7.1.0RC5') >= 0 && null !== $C) {
+            return self::decryptWithPHP71($K, $key_length, $IV, $C, $A, $T);
+        } elseif (class_exists('\Crypto\Cipher')) {
+            return self::decryptWithCryptoExtension($K, $key_length, $IV, $C, $A, $T, $tag_length);
+        }
+
+        return self::decryptWithPHP($K, $key_length, $IV, $C, $A, $T, $tag_length);
+    }
+
+    /**
+     * This method should be used if the tag is appended at the end of the ciphertext.
+     * It is used by some AES GCM implementations such as the Java one.
+     *
+     * @param string $K Key encryption key
+     * @param string $IV Initialization vector
+     * @param string|null $Ciphertext Data to encrypt (null for authentication)
+     * @param string|null $A Additional Authentication Data
+     * @param int $tag_length Tag length
+     *
+     * @return string
+     *
+     * @see self::encryptAndAppendTag
+     */
+    public static function decryptWithAppendedTag($K, $IV, $Ciphertext = null, $A = null, $tag_length = 128)
+    {
+        $tag_length_in_bits = $tag_length / 8;
+        $C = mb_substr($Ciphertext, 0, -$tag_length_in_bits, '8bit');
+        $T = mb_substr($Ciphertext, -$tag_length_in_bits, null, '8bit');
+
+        return self::decrypt($K, $IV, $C, $A, $T);
     }
 
     /**
@@ -123,60 +179,6 @@ final class AESGCM
         $T = $cipher->getTag();
 
         return [$C, $T];
-    }
-
-    /**
-     * @param string $K Key encryption key
-     * @param string $IV Initialization vector
-     * @param string|null $C Data to encrypt (null for authentication)
-     * @param string|null $A Additional Authentication Data
-     * @param string $T Tag
-     *
-     * @return string
-     */
-    public static function decrypt($K, $IV, $C, $A, $T)
-    {
-        Assertion::string($K, 'The key encryption key must be a binary string.');
-        $key_length = mb_strlen($K, '8bit') * 8;
-        Assertion::inArray($key_length, [128, 192, 256], 'Bad key encryption key length.');
-        Assertion::string($IV, 'The Initialization Vector must be a binary string.');
-        Assertion::nullOrString($C, 'The data to encrypt must be null or a binary string.');
-        Assertion::nullOrString($A, 'The Additional Authentication Data must be null or a binary string.');
-
-        $tag_length = self::getLength($T);
-        Assertion::integer($tag_length, 'Invalid tag length. Supported values are: 128, 120, 112, 104 and 96.');
-        Assertion::inArray($tag_length, [128, 120, 112, 104, 96], 'Invalid tag length. Supported values are: 128, 120, 112, 104 and 96.');
-
-        if (version_compare(PHP_VERSION, '7.1.0RC5') >= 0 && null !== $C) {
-            return self::decryptWithPHP71($K, $key_length, $IV, $C, $A, $T);
-        } elseif (class_exists('\Crypto\Cipher')) {
-            return self::decryptWithCryptoExtension($K, $key_length, $IV, $C, $A, $T, $tag_length);
-        }
-
-        return self::decryptWithPHP($K, $key_length, $IV, $C, $A, $T, $tag_length);
-    }
-
-    /**
-     * This method should be used if the tag is appended at the end of the ciphertext.
-     * It is used by some AES GCM implementations such as the Java one.
-     *
-     * @param string $K Key encryption key
-     * @param string $IV Initialization vector
-     * @param string|null $Ciphertext Data to encrypt (null for authentication)
-     * @param string|null $A Additional Authentication Data
-     * @param int $tag_length Tag length
-     *
-     * @return string
-     *
-     * @see self::encryptAndAppendTag
-     */
-    public static function decryptWithAppendedTag($K, $IV, $Ciphertext = null, $A = null, $tag_length = 128)
-    {
-        $tag_length_in_bits = $tag_length / 8;
-        $C = mb_substr($Ciphertext, 0, -$tag_length_in_bits, '8bit');
-        $T = mb_substr($Ciphertext, -$tag_length_in_bits, null, '8bit');
-
-        return self::decrypt($K, $IV, $C, $A, $T);
     }
 
     /**
@@ -427,7 +429,7 @@ final class AESGCM
     {
         $Y = [];
         $Y[0] = str_pad('', 16, "\0");
-        $num_blocks = (int)(mb_strlen($X, '8bit') / 16);
+        $num_blocks = (int) (mb_strlen($X, '8bit') / 16);
         for ($i = 1; $i <= $num_blocks; $i++) {
             $Y[$i] = self::getProduct(self::getBitXor($Y[$i - 1], mb_substr($X, ($i - 1) * 16, 16, '8bit')), $H);
         }
@@ -449,7 +451,7 @@ final class AESGCM
             return '';
         }
 
-        $n = (int)ceil(self::getLength($X) / 128);
+        $n = (int) ceil(self::getLength($X) / 128);
         $CB = [];
         $Y = [];
         $CB[1] = $ICB;

@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS;
 
 use PTLS\Buffer;
+use PTLS\ConnectionDuplex;
+use PTLS\Content\Alert;
 use PTLS\Content\ClientContent;
 use PTLS\Content\ServerContent;
-use PTLS\ConnectionDuplex;
+use PTLS\Exceptions\TLSAlertException;
 use PTLS\Extensions\TLSExtensions;
 use PTLS\X509;
-use PTLS\Exceptions\TLSAlertException;
-use PTLS\Content\Alert;
 
 class Core
 {
@@ -19,7 +21,6 @@ class Core
      * True when handshake is done and connection is established
      */
     public $isHandshaked;
-
 
     /**
      * True when alert message is received
@@ -266,7 +267,7 @@ class Core
         $random = openssl_random_pseudo_bytes($length, $strong);
 
         if (true !== $strong) {
-            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), "Random byte not strong");
+            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), 'Random byte not strong');
         }
 
         return $random;

@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Util;
 
 use Mdanter\Ecc\Math\GmpMathInterface;
 
 class NumberSize
 {
-
     /**
      * @param GmpMathInterface $adapter
      * @param \GMP $x

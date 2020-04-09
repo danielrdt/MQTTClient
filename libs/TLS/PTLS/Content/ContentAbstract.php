@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Content;
 
-use PTLS\Core;
 use PTLS\ContentType;
-use PTLS\Handshake\HandshakeType;
+use PTLS\Core;
 use PTLS\Exceptions\TLSAlertException;
 use PTLS\Exceptions\TLSException;
+use PTLS\Handshake\HandshakeType;
 
 abstract class ContentAbstract
 {
@@ -15,14 +17,14 @@ abstract class ContentAbstract
     protected $content;
     protected $appData;
 
-    abstract public function encodeHandshake($data);
-
     public function __construct(Core $core)
     {
         $this->core = $core;
         $this->content =
         $this->appData = null;
     }
+
+    abstract public function encodeHandshake($data);
 
     /**
      * https://tools.ietf.org/html/rfc5246#section-6.2.1
@@ -69,25 +71,12 @@ abstract class ContentAbstract
         }
     }
 
-    protected function decodeContent($payload, $contentType)
-    {
-        $core = $this->core;
-
-        $recordOut = $core->getOutDuplex()->getRecord();
-
-        $out = $recordOut->set('contentType', $contentType)
-            ->set('payload', $payload)
-            ->decode();
-
-        return $out;
-    }
-
     public function encodeChangeCipherSpec($data)
     {
         $core = $this->core;
 
         if ($this->expectedHandshakeType != HandshakeType::FINISHED || $core->isHandshaked) {
-            throw new TLSException("Invalid message");
+            throw new TLSException('Invalid message');
         }
 
         $changeCipherSpec = new ChangeCipherSpec();
@@ -101,7 +90,7 @@ abstract class ContentAbstract
         $core = $this->core;
 
         if (!$core->isHandshaked) {
-            throw new TLSException("Handshake Imcomplete");
+            throw new TLSException('Handshake Imcomplete');
         }
 
         if (is_null($this->appData)) {
@@ -123,7 +112,7 @@ abstract class ContentAbstract
         $core->isClosed = true;
 
         if ($alert->getDescCode() != Alert::CLOSE_NOTIFY) {
-            throw new TLSAlertException($alert, "Alert received from peer");
+            throw new TLSAlertException($alert, 'Alert received from peer');
         }
     }
 
@@ -133,5 +122,18 @@ abstract class ContentAbstract
             return;
         }
         return $this->content->debugInfo();
+    }
+
+    protected function decodeContent($payload, $contentType)
+    {
+        $core = $this->core;
+
+        $recordOut = $core->getOutDuplex()->getRecord();
+
+        $out = $recordOut->set('contentType', $contentType)
+            ->set('payload', $payload)
+            ->decode();
+
+        return $out;
     }
 }

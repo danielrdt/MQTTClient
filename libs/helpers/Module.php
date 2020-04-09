@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * IPS Constants Loader
  */
-require_once(__DIR__ . '/ips.constants.php');
+require_once __DIR__ . '/ips.constants.php';
 
 class Module extends IPSModule
 {

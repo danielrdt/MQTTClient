@@ -1,6 +1,8 @@
 <?php
 
-/***********************************************************************
+declare(strict_types=1);
+
+/*
  * Copyright (C) 2012 Matyas Danter
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -20,7 +22,7 @@
  * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- *************************************************************************/
+ */
 
 namespace Mdanter\Ecc\Primitives;
 
@@ -37,7 +39,6 @@ use Mdanter\Ecc\Random\RandomNumberGeneratorInterface;
  */
 class CurveFp implements CurveFpInterface
 {
-
     /**
      * @var CurveParameters
      */
@@ -66,6 +67,27 @@ class CurveFp implements CurveFpInterface
         $this->parameters = $parameters;
         $this->adapter = $adapter;
         $this->modAdapter = new ModularArithmetic($this->adapter, $this->parameters->getPrime());
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see \Mdanter\Ecc\CurveFpInterface::__toString()
+     */
+    public function __toString()
+    {
+        return 'curve(' . $this->adapter->toString($this->getA()) . ', ' . $this->adapter->toString($this->getB()) . ', ' . $this->adapter->toString($this->getPrime()) . ')';
+    }
+
+    /**
+     * @return array
+     */
+    public function __debugInfo()
+    {
+        return [
+            'a'     => $this->adapter->toString($this->getA()),
+            'b'     => $this->adapter->toString($this->getB()),
+            'prime' => $this->adapter->toString($this->getPrime())
+        ];
     }
 
     /**
@@ -214,26 +236,5 @@ class CurveFp implements CurveFpInterface
     public function equals(CurveFpInterface $other)
     {
         return $this->cmp($other) == 0;
-    }
-
-    /**
-     * {@inheritDoc}
-     * @see \Mdanter\Ecc\CurveFpInterface::__toString()
-     */
-    public function __toString()
-    {
-        return 'curve(' . $this->adapter->toString($this->getA()) . ', ' . $this->adapter->toString($this->getB()) . ', ' . $this->adapter->toString($this->getPrime()) . ')';
-    }
-
-    /**
-     * @return array
-     */
-    public function __debugInfo()
-    {
-        return [
-            'a' => $this->adapter->toString($this->getA()),
-            'b' => $this->adapter->toString($this->getB()),
-            'prime' => $this->adapter->toString($this->getPrime())
-        ];
     }
 }

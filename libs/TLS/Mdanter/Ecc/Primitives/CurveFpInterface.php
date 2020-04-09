@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Primitives;
 
 use Mdanter\Ecc\Math\ModularArithmetic;
@@ -34,6 +36,12 @@ use Mdanter\Ecc\Random\RandomNumberGeneratorInterface;
  */
 interface CurveFpInterface
 {
+    /**
+     * Return string representation of curve for debugging
+     *
+     * @return string
+     */
+    public function __toString();
 
     /**
      * Returns a modular arithmetic adapter.
@@ -117,7 +125,7 @@ interface CurveFpInterface
      * @param  CurveFpInterface $other
      * @return int              < 0 if $this < $other, 0 if $other == $this, > 0 if $this > $other
      */
-    public function cmp(CurveFpInterface $other);
+    public function cmp(self $other);
 
     /**
      * Checks whether the curve is equal to another.
@@ -125,12 +133,5 @@ interface CurveFpInterface
      * @param  CurveFpInterface $other
      * @return bool
      */
-    public function equals(CurveFpInterface $other);
-
-    /**
-     * Return string representation of curve for debugging
-     *
-     * @return string
-     */
-    public function __toString();
+    public function equals(self $other);
 }

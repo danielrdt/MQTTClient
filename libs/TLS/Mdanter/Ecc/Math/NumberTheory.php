@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Math;
 
-/***********************************************************************
+/*
  * Copyright (C) 2012 Matyas Danter
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -22,7 +24,7 @@ namespace Mdanter\Ecc\Math;
  * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
- ************************************************************************/
+ */
 
 /**
  * Implementation of some number theoretic algorithms
@@ -193,7 +195,7 @@ class NumberTheory
 
             $jac = $math->jacobi($a, $p);
             if ($jac == -1) {
-                throw new \LogicException($math->toString($a) . " has no square root modulo " . $math->toString($p));
+                throw new \LogicException($math->toString($a) . ' has no square root modulo ' . $math->toString($p));
             }
 
             if ($math->equals($math->mod($p, $four), gmp_init(3, 10))) {

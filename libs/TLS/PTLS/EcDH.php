@@ -1,15 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS;
 
 use Mdanter\Ecc\Crypto\EcDH\EcDH as MdanterEcDH;
 
-;
-
-use Mdanter\Ecc\EccFactory;
-use Mdanter\Ecc\Serializer\Point\UncompressedPointSerializer;
-use Mdanter\Ecc\Primitives\GeneratorPoint;
 use Mdanter\Ecc\Crypto\Key\PublicKey;
+use Mdanter\Ecc\EccFactory;
+use Mdanter\Ecc\Primitives\GeneratorPoint;
+use Mdanter\Ecc\Serializer\Point\UncompressedPointSerializer;
 
 /**
  * https://tools.ietf.org/html/rfc4492#section-5.1.1
@@ -54,6 +54,18 @@ class EcDH
     private $publicKey;
     private $adapter;
 
+    public function __construct($type)
+    {
+        $this->type = $type;
+
+        $this->ecdh =
+        $this->curve =
+        $this->gen =
+        $this->privateKey =
+        $this->publicKey =
+        $this->adapter = null;
+    }
+
     public static function isSupported($type)
     {
         switch ($type) {
@@ -65,16 +77,73 @@ class EcDH
         return false;
     }
 
-    public function __construct($type)
+    public function getPrivateKey()
     {
-        $this->type = $type;
+        if (!is_null($this->privateKey)) {
+            return $this->privateKey;
+        }
 
-        $this->ecdh =
-        $this->curve =
-        $this->gen =
-        $this->privateKey =
-        $this->publicKey =
-        $this->adapter = null;
+        $gen = $this->getGenerator();
+
+        $this->privateKey = $gen->createPrivateKey();
+
+        return $this->privateKey;
+    }
+
+    public function createPrivateKey()
+    {
+        $this->getPrivateKey();
+        return $this;
+    }
+
+    public function getPublicKey()
+    {
+        $privateKey = $this->getPrivateKey();
+
+        $this->publicKey = $publicKey = $privateKey->getPublicKey();
+
+        $publicPoint = $publicKey->getPoint();
+
+        // Convert to binary - Uncompressed
+        $publicKeyBin = Core::_pack('C', 0x04)
+            . gmp_export($publicPoint->getX(), 1, GMP_BIG_ENDIAN)
+            . gmp_export($publicPoint->getY(), 1, GMP_BIG_ENDIAN);
+
+        return $publicKeyBin;
+    }
+
+    public function calculateSharedKey($publicKeyBin)
+    {
+        $length = strlen($publicKeyBin) - 1;
+
+        if ($length % 2 != 0) {
+            return;
+        }
+
+        $half = $length / 2;
+
+        $x = substr($publicKeyBin, 1, $half);
+        $gmpX = gmp_import($x, 1);
+
+        $y = substr($publicKeyBin, $half + 1);
+        $gmpY = gmp_import($y, 1);
+
+        $curve = $this->getCurve();
+        $adapter = $this->getAdapter();
+        $gen = $this->getGenerator();
+        $ecdh = $this->getEcdh();
+
+        $point = $curve->getPoint($gmpX, $gmpY);
+
+        $privateKey = $this->getPrivateKey();
+        $publicKey = new PublicKey($adapter, $gen, $point);
+
+        $ecdh->setSenderKey($privateKey);
+        $ecdh->setRecipientKey($publicKey);
+
+        $sharedKey = $ecdh->calculateSharedKey();
+
+        return gmp_export($sharedKey);
     }
 
     private function getGenerator()
@@ -141,75 +210,5 @@ class EcDH
 
         $this->ecdh = new MdanterEcDH($adapter);
         return $this->ecdh;
-    }
-
-    public function getPrivateKey()
-    {
-        if (!is_null($this->privateKey)) {
-            return $this->privateKey;
-        }
-
-        $gen = $this->getGenerator();
-        ;
-
-        $this->privateKey = $gen->createPrivateKey();
-
-        return $this->privateKey;
-    }
-
-    public function createPrivateKey()
-    {
-        $this->getPrivateKey();
-        return $this;
-    }
-
-    public function getPublicKey()
-    {
-        $privateKey = $this->getPrivateKey();
-
-        $this->publicKey = $publicKey = $privateKey->getPublicKey();
-
-        $publicPoint = $publicKey->getPoint();
-
-        // Convert to binary - Uncompressed
-        $publicKeyBin = Core::_pack('C', 0x04)
-            . gmp_export($publicPoint->getX(), 1, GMP_BIG_ENDIAN)
-            . gmp_export($publicPoint->getY(), 1, GMP_BIG_ENDIAN);
-
-        return $publicKeyBin;
-    }
-
-    public function calculateSharedKey($publicKeyBin)
-    {
-        $length = strlen($publicKeyBin) - 1;
-
-        if ($length % 2 != 0) {
-            return;
-        }
-
-        $half = $length / 2;
-
-        $x = substr($publicKeyBin, 1, $half);
-        $gmpX = gmp_import($x, 1);
-
-        $y = substr($publicKeyBin, $half + 1);
-        $gmpY = gmp_import($y, 1);
-
-        $curve = $this->getCurve();
-        $adapter = $this->getAdapter();
-        $gen = $this->getGenerator();
-        $ecdh = $this->getEcdh();
-
-        $point = $curve->getPoint($gmpX, $gmpY);
-
-        $privateKey = $this->getPrivateKey();
-        $publicKey = new PublicKey($adapter, $gen, $point);
-
-        $ecdh->setSenderKey($privateKey);
-        $ecdh->setRecipientKey($publicKey);
-
-        $sharedKey = $ecdh->calculateSharedKey();
-
-        return gmp_export($sharedKey);
     }
 }

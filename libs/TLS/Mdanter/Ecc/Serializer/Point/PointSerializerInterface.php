@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Serializer\Point;
 
-use Mdanter\Ecc\Primitives\PointInterface;
 use Mdanter\Ecc\Primitives\CurveFpInterface;
+use Mdanter\Ecc\Primitives\PointInterface;
 
 interface PointSerializerInterface
 {

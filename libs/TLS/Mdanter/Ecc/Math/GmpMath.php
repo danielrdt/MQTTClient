@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Math;
 
 use Mdanter\Ecc\Util\BinaryString;
@@ -157,7 +159,7 @@ class GmpMath implements GmpMathInterface
     public function powmod(\GMP $base, \GMP $exponent, \GMP $modulus)
     {
         if ($this->cmp($exponent, gmp_init(0, 10)) < 0) {
-            throw new \InvalidArgumentException("Negative exponents (" . $this->toString($exponent) . ") not allowed.");
+            throw new \InvalidArgumentException('Negative exponents (' . $this->toString($exponent) . ') not allowed.');
         }
 
         return gmp_powm($base, $exponent, $modulus);
@@ -216,7 +218,7 @@ class GmpMath implements GmpMathInterface
         }
 
         if (gmp_cmp($x, 0) > 0) {
-            $result = "";
+            $result = '';
 
             while (gmp_cmp($x, 0) > 0) {
                 $q = gmp_div($x, 256, 0);

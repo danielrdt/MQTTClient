@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Handshake;
 
 use PTLS\Core;
@@ -22,7 +24,7 @@ class Certificate extends HandshakeAbstract
 
         for ($i = 0; $i < $crtsLength;) {
             $crtLength = Core::_unpack('n', $crtsData[$i + 1] . $crtsData[$i + 2]);
-            if (0 >= (int)$crtLength) {
+            if (0 >= (int) $crtLength) {
                 break;
             }
 
@@ -66,7 +68,7 @@ class Certificate extends HandshakeAbstract
         $crtDers = $core->getCrtDers();
 
         return "[HandshakeType::Certificate]\n"
-            . "Lengh:                   " . $this->length . "\n"
-            . "Number of Certificates:  " . count($crtDers) . "\n";
+            . 'Lengh:                   ' . $this->length . "\n"
+            . 'Number of Certificates:  ' . count($crtDers) . "\n";
     }
 }

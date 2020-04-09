@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS;
 
 use PTLS\TLS;
@@ -36,10 +38,9 @@ class Prf
         $masterSecretLength = 48;
         $seed = $clientRandom . $serverRandom;
 
-        $masterSecret = $this->prf($masterSecretLength, $preMaster, "master secret", $seed);
+        $masterSecret = $this->prf($masterSecretLength, $preMaster, 'master secret', $seed);
         return $masterSecret;
     }
-
 
     /**
      * Generate secret keys
@@ -67,7 +68,7 @@ class Prf
          */
         $offset = 0;
         $length = 2 * $macLen + 2 * $keyLen + 2 * $ivLen;
-        $keys = $this->prf($length, $masterSecret, "key expansion", $seed);
+        $keys = $this->prf($length, $masterSecret, 'key expansion', $seed);
 
         $clientMAC = substr($keys, $offset, $macLen);
         $offset += $macLen;
@@ -102,15 +103,15 @@ class Prf
         $LS1 = substr($secret, 0, ceil(strlen($secret)) / 2);
         $LS2 = substr($secret, ceil(strlen($secret) / 2));
 
-        $md5 = $this->pHash($length, $LS1, $labelAndSeed, "md5");
-        $sha1 = $this->pHash($length, $LS2, $labelAndSeed, "sha1");
+        $md5 = $this->pHash($length, $LS1, $labelAndSeed, 'md5');
+        $sha1 = $this->pHash($length, $LS2, $labelAndSeed, 'sha1');
 
         $result = [];
         for ($i = 0; $i < strlen($sha1); $i++) {
             $result[$i] = ($md5[$i]) ^ ($sha1[$i]);
         }
 
-        return implode("", $result);
+        return implode('', $result);
     }
 
     /**

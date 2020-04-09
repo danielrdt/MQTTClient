@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Handshake;
 
-use PTLS\Core;
 use PTLS\CipherSuites;
-use PTLS\Exceptions\TLSAlertException;
 use PTLS\Content\Alert;
+use PTLS\Core;
+use PTLS\Exceptions\TLSAlertException;
 
 class ServerHello extends HandshakeAbstract
 {
@@ -51,7 +53,7 @@ class ServerHello extends HandshakeAbstract
         $cipherSuite = new CipherSuites($cipherID);
 
         if (is_null($cipherSuite)) {
-            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), "cipherSuite is null");
+            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), 'cipherSuite is null');
         }
 
         $core->cipherSuite = $cipherSuite;
@@ -145,12 +147,12 @@ class ServerHello extends HandshakeAbstract
 
         // ['type' => $extType, 'data' => $extData]
         foreach ($this->requestedExtensions as $value) {
-            $extensions[] = "Type: " . dechex($value['type'])
+            $extensions[] = 'Type: ' . dechex($value['type'])
                 . ' Data Length: ' . strlen($value['data']);
         }
 
         return "[HandshakeType::ServerHello]\n"
-            . "Lengh:            " . $this->length . "\n"
+            . 'Lengh:            ' . $this->length . "\n"
             . "Protocol Version: $protoVersion \n"
             . "Session ID:       $sessionID\n"
             . "[Extensions]\n"

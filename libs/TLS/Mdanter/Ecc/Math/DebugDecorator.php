@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Math;
 
 use Mdanter\Ecc\Primitives\CurveFpInterface;
@@ -27,54 +29,10 @@ class DebugDecorator implements GmpMathInterface
     public function __construct(GmpMathInterface $adapter, callable $callback = null)
     {
         $this->adapter = $adapter;
-        $this->writer = $callback ?: function ($message) {
+        $this->writer = $callback ?: function ($message)
+        {
             echo $message;
         };
-    }
-
-    /**
-     *
-     * @param string $message
-     */
-    private function write($message)
-    {
-        call_user_func($this->writer, $message);
-    }
-
-    /**
-     *
-     * @param  string $func
-     * @param  array $args
-     * @return mixed
-     */
-    private function call($func, $args)
-    {
-        $strArgs = array_map(
-            function ($arg) {
-                if ($arg instanceof \GMP) {
-                    return var_export($this->adapter->toString($arg), true);
-                } else {
-                    return var_export($arg, true);
-                }
-            },
-            $args
-        );
-
-        if (strpos($func, '::')) {
-            list(, $func) = explode('::', $func);
-        }
-
-        $this->write($func . '(' . implode(', ', $strArgs) . ')');
-
-        $res = call_user_func_array([$this->adapter, $func], $args);
-
-        if ($res instanceof \GMP) {
-            $this->write(' => ' . var_export($this->adapter->toString($res), true) . PHP_EOL);
-        } else {
-            $this->write(' => ' . var_export($res, true) . PHP_EOL);
-        }
-
-        return $res;
     }
 
     /**
@@ -95,7 +53,6 @@ class DebugDecorator implements GmpMathInterface
             $args
         );
     }
-
 
     /**
      * {@inheritDoc}
@@ -617,5 +574,51 @@ class DebugDecorator implements GmpMathInterface
             $func,
             $args
         );
+    }
+
+    /**
+     *
+     * @param string $message
+     */
+    private function write($message)
+    {
+        call_user_func($this->writer, $message);
+    }
+
+    /**
+     *
+     * @param  string $func
+     * @param  array $args
+     * @return mixed
+     */
+    private function call($func, $args)
+    {
+        $strArgs = array_map(
+            function ($arg)
+            {
+                if ($arg instanceof \GMP) {
+                    return var_export($this->adapter->toString($arg), true);
+                } else {
+                    return var_export($arg, true);
+                }
+            },
+            $args
+        );
+
+        if (strpos($func, '::')) {
+            list(, $func) = explode('::', $func);
+        }
+
+        $this->write($func . '(' . implode(', ', $strArgs) . ')');
+
+        $res = call_user_func_array([$this->adapter, $func], $args);
+
+        if ($res instanceof \GMP) {
+            $this->write(' => ' . var_export($this->adapter->toString($res), true) . PHP_EOL);
+        } else {
+            $this->write(' => ' . var_export($res, true) . PHP_EOL);
+        }
+
+        return $res;
     }
 }

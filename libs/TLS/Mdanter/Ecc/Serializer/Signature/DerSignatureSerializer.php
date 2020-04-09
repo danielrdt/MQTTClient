@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Serializer\Signature;
 
 use Mdanter\Ecc\Crypto\Signature\Signature;
@@ -17,9 +19,6 @@ class DerSignatureSerializer
      */
     private $formatter;
 
-    /**
-     *
-     */
     public function __construct()
     {
         $this->parser = new Der\Parser();

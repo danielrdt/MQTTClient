@@ -1,20 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Serializer\PublicKey\Der;
 
 use FG\ASN1\Object;
 use FG\ASN1\Universal\Sequence;
+use Mdanter\Ecc\Crypto\Key\PublicKey;
 use Mdanter\Ecc\Math\GmpMathInterface;
-use Mdanter\Ecc\Serializer\Util\CurveOidMapper;
 use Mdanter\Ecc\Primitives\GeneratorPoint;
-use Mdanter\Ecc\Serializer\PublicKey\DerPublicKeySerializer;
 use Mdanter\Ecc\Serializer\Point\PointSerializerInterface;
 use Mdanter\Ecc\Serializer\Point\UncompressedPointSerializer;
-use Mdanter\Ecc\Crypto\Key\PublicKey;
+use Mdanter\Ecc\Serializer\PublicKey\DerPublicKeySerializer;
+use Mdanter\Ecc\Serializer\Util\CurveOidMapper;
 
 class Parser
 {
-
     /**
      * @var GmpMathInterface
      */

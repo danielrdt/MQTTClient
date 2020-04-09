@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Trait to read / write object properties in instance buffer
  */
@@ -13,7 +15,7 @@ trait BufferHelper
     public function __get($name)
     {
         if (strpos($name, 'Multi_') === 0 && is_array($this->{'BufferList_' . $name})) {
-            $Lines = "";
+            $Lines = '';
             foreach ($this->{'BufferList_' . $name} as $BufferIndex) {
                 $Lines .= $this->{'Part_' . $name . $BufferIndex};
             }
@@ -43,7 +45,7 @@ trait BufferHelper
             $this->{'BufferList_' . $name} = $NewBuffers;
             $DelBuffers = array_diff_key($OldBuffers, $NewBuffers);
             foreach ($DelBuffers as $DelBuffer) {
-                $this->{'Part_' . $name . $DelBuffer} = "";
+                $this->{'Part_' . $name . $DelBuffer} = '';
             }
             return;
         }

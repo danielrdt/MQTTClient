@@ -1,17 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Crypto\Signature;
 
-use Mdanter\Ecc\Math\GmpMathInterface;
 use Mdanter\Ecc\Crypto\Key\PrivateKeyInterface;
 use Mdanter\Ecc\Crypto\Key\PublicKeyInterface;
+use Mdanter\Ecc\Math\GmpMathInterface;
 use Mdanter\Ecc\Primitives\GeneratorPoint;
-use Mdanter\Ecc\Util\NumberSize;
 use Mdanter\Ecc\Util\BinaryString;
+use Mdanter\Ecc\Util\NumberSize;
 
 class Signer
 {
-
     /**
      *
      * @var GmpMathInterface
@@ -79,13 +80,13 @@ class Signer
         $r = $p1->getX();
         $zero = gmp_init(0, 10);
         if ($math->equals($r, $zero)) {
-            throw new \RuntimeException("Error: random number R = 0");
+            throw new \RuntimeException('Error: random number R = 0');
         }
 
         $hash = $this->truncateHash($generator, $hash);
         $s = $modMath->div($modMath->add($hash, $math->mul($key->getSecret(), $r)), $k);
         if ($math->equals($s, $zero)) {
-            throw new \RuntimeException("Error: random number S = 0");
+            throw new \RuntimeException('Error: random number S = 0');
         }
 
         return new Signature($r, $s);

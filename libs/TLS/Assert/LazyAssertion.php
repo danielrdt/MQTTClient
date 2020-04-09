@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Assert
  *
@@ -116,6 +118,25 @@ class LazyAssertion
     /** @var string|LazyAssertionException The class to use for exceptions */
     private $exceptionClass = 'Assert\LazyAssertionException';
 
+    public function __call($method, $args)
+    {
+        if ($this->alwaysTryAll === false
+            && $this->thisChainTryAll === false
+            && $this->currentChainFailed === true
+        ) {
+            return $this;
+        }
+
+        try {
+            \call_user_func_array([$this->currentChain, $method], $args);
+        } catch (AssertionFailedException $e) {
+            $this->errors[] = $e;
+            $this->currentChainFailed = true;
+        }
+
+        return $this;
+    }
+
     public function that($value, $propertyPath, $defaultMessage = null)
     {
         $this->currentChainFailed = false;
@@ -132,25 +153,6 @@ class LazyAssertion
         }
 
         $this->thisChainTryAll = true;
-
-        return $this;
-    }
-
-    public function __call($method, $args)
-    {
-        if ($this->alwaysTryAll === false
-            && $this->thisChainTryAll === false
-            && $this->currentChainFailed === true
-        ) {
-            return $this;
-        }
-
-        try {
-            \call_user_func_array([$this->currentChain, $method], $args);
-        } catch (AssertionFailedException $e) {
-            $this->errors[] = $e;
-            $this->currentChainFailed = true;
-        }
 
         return $this;
     }

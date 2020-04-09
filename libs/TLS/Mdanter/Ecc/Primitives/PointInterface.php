@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Primitives;
 
 /**
@@ -39,6 +41,12 @@ namespace Mdanter\Ecc\Primitives;
  */
 interface PointInterface
 {
+    /**
+     * Returns the string representation of the point.
+     *
+     * @return string
+     */
+    public function __toString();
 
     /**
      * Returns true if instance is an non-finite point.
@@ -51,7 +59,7 @@ interface PointInterface
      * @param  PointInterface $addend
      * @return PointInterface
      */
-    public function add(PointInterface $addend);
+    public function add(self $addend);
 
     /**
      * Compares the current instance to another point.
@@ -59,7 +67,7 @@ interface PointInterface
      * @param  PointInterface $other
      * @return int|string              A number different than 0 when current instance is less than the given point, 0 when they are equal.
      */
-    public function cmp(PointInterface $other);
+    public function cmp(self $other);
 
     /**
      * Checks whether the current instance is equal to the given point.
@@ -67,7 +75,7 @@ interface PointInterface
      * @param  PointInterface $other
      * @return bool                    true when points are equal, false otherwise.
      */
-    public function equals(PointInterface $other);
+    public function equals(self $other);
 
     /**
      * Multiplies the point by a scalar value and returns the resulting point.
@@ -111,11 +119,4 @@ interface PointInterface
      * @return \GMP
      */
     public function getY();
-
-    /**
-     * Returns the string representation of the point.
-     *
-     * @return string
-     */
-    public function __toString();
 }

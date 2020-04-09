@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Record;
 
-use PTLS\Core;
-use PTLS\ContentType;
 use PTLS\ConnectionDuplex;
-use PTLS\Exceptions\TLSAlertException;
 use PTLS\Content\Alert;
+use PTLS\ContentType;
+use PTLS\Core;
+use PTLS\Exceptions\TLSAlertException;
 
 /**
  * https://tools.ietf.org/html/rfc5246#section-6.2.3.3
@@ -27,60 +29,6 @@ class AEADCipherRecord extends CipherRecordAbstract
     public function __construct(ConnectionDuplex $conn)
     {
         parent::__construct($conn);
-    }
-
-    /**
-     * @Override
-     */
-    protected function encodeContent()
-    {
-        $payload = $this->payload;
-
-        $conn = $this->conn;
-        $core = $conn->getCore();
-
-        $cipherSuite = $core->cipherSuite;
-        $sharedKey = $conn->Key;
-
-        $nonceImplicit = $conn->IV;
-
-        // 16 => tag length
-        $gcmHeaderLen = self::nonceExplicitLen + 16;
-        $rawPayloadLen = strlen($this->payload);
-
-        if ($rawPayloadLen < $gcmHeaderLen) {
-            throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC), "GCM payload too short");
-        }
-
-        $nonceExplicit = substr($this->payload, 0, self::nonceExplicitLen);
-
-        $aad = $this->getAAD($rawPayloadLen - $gcmHeaderLen);
-
-        // Copy payload over to encPayload
-        $this->encPayload = $this->payload;
-        $this->encLength = $this->length;
-
-        $nonce = $nonceImplicit . $nonceExplicit;
-        $encData = substr($this->encPayload, self::nonceExplicitLen);
-
-        $data = $cipherSuite->gcmDecrypt($encData, $sharedKey, $nonce, $aad);
-
-        // If the decryption fails, a fatal bad_record_mac alert MUST be generated
-        if (false === $data) {
-            throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC), "Cipher gcm decryption failed");
-        }
-
-        // Re-set the length
-        $this->length = strlen($data);
-
-        // Set Payload
-        $this->payload = $payload = substr($data, 0, $this->length);
-
-        $this->incrementSeq();
-
-        $content = $core->content;
-
-        $content->encodeContent($this->contentType, $this->payload, $this);
     }
 
     /**
@@ -113,7 +61,7 @@ class AEADCipherRecord extends CipherRecordAbstract
         $encData = $cipherSuite->gcmEncrypt($this->payload, $sharedKey, $nonce, $aad);
 
         if (false === $encData) {
-            throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC), "Cipher gcm encryption failed");
+            throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC), 'Cipher gcm encryption failed');
         }
 
         $this->incrementSeq();
@@ -164,5 +112,59 @@ class AEADCipherRecord extends CipherRecordAbstract
             . $length;
 
         return $concat;
+    }
+
+    /**
+     * @Override
+     */
+    protected function encodeContent()
+    {
+        $payload = $this->payload;
+
+        $conn = $this->conn;
+        $core = $conn->getCore();
+
+        $cipherSuite = $core->cipherSuite;
+        $sharedKey = $conn->Key;
+
+        $nonceImplicit = $conn->IV;
+
+        // 16 => tag length
+        $gcmHeaderLen = self::nonceExplicitLen + 16;
+        $rawPayloadLen = strlen($this->payload);
+
+        if ($rawPayloadLen < $gcmHeaderLen) {
+            throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC), 'GCM payload too short');
+        }
+
+        $nonceExplicit = substr($this->payload, 0, self::nonceExplicitLen);
+
+        $aad = $this->getAAD($rawPayloadLen - $gcmHeaderLen);
+
+        // Copy payload over to encPayload
+        $this->encPayload = $this->payload;
+        $this->encLength = $this->length;
+
+        $nonce = $nonceImplicit . $nonceExplicit;
+        $encData = substr($this->encPayload, self::nonceExplicitLen);
+
+        $data = $cipherSuite->gcmDecrypt($encData, $sharedKey, $nonce, $aad);
+
+        // If the decryption fails, a fatal bad_record_mac alert MUST be generated
+        if (false === $data) {
+            throw new TLSAlertException(Alert::create(Alert::BAD_RECORD_MAC), 'Cipher gcm decryption failed');
+        }
+
+        // Re-set the length
+        $this->length = strlen($data);
+
+        // Set Payload
+        $this->payload = $payload = substr($data, 0, $this->length);
+
+        $this->incrementSeq();
+
+        $content = $core->content;
+
+        $content->encodeContent($this->contentType, $this->payload, $this);
     }
 }

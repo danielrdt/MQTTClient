@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Helper class to provide system-wide constants below IP-Symcon 5.0
  */

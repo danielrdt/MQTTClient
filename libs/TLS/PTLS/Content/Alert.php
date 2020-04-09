@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Content;
 
 use PTLS\Core;
@@ -46,7 +48,7 @@ class Alert extends ProtocolAbstract
 
     public static function create($descCode, $level = self::LEVEL_FATAL)
     {
-        $alert = new Alert();
+        $alert = new self();
         $alert->descCode = $descCode;
         $alert->level = $level;
         $alert->fromPeer = false;
@@ -90,7 +92,7 @@ class Alert extends ProtocolAbstract
     public function toString()
     {
         $desc = $this->getConst($this->descCode);
-        $msg = $desc . " " . $this->descCode;
+        $msg = $desc . ' ' . $this->descCode;
 
         return $msg;
     }

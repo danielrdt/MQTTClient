@@ -5,11 +5,11 @@ declare(strict_types=1);
 include_once __DIR__ . '/../libs//TFphpMQTT.php';
 
 define('__ROOT__', dirname(dirname(__FILE__)));
-require_once(__ROOT__ . '/libs/helpers/autoload.php');
-require_once(__ROOT__ . '/libs/TLS/autoloader.php');
+require_once __ROOT__ . '/libs/helpers/autoload.php';
+require_once __ROOT__ . '/libs/TLS/autoloader.php';
 
-use PTLS\TLSContext;
 use PTLS\Exceptions\TLSAlertException;
+use PTLS\TLSContext;
 
 class MQTTClient extends IPSModule
 {
@@ -163,9 +163,213 @@ class MQTTClient extends IPSModule
     }
 
     /**
-         * Init TLS connection to client socket
-         * @return bool
-         */
+     * Reconnect parent socket
+     * @param bool $force
+     */
+    public function Reconnect(bool $force = false)
+    {
+        $this->SendDebug(__FUNCTION__, "Force: $force", 0);
+        $cID = $this->GetConnectionID();
+        if (($this->HasActiveParent() || $force) && $cID > 0) {
+            set_error_handler([$this, 'onConnectError']);
+            if (IPS_SetProperty($cID, 'Open', true)) {
+                IPS_ApplyChanges($cID);
+            }
+            restore_error_handler();
+        }
+    }
+
+    public function ReceiveData($JSONString)
+    {
+        // convert json data to array
+        $data = json_decode($JSONString);
+        $buffer = utf8_decode($data->Buffer);
+
+        if ($this->ReadPropertyBoolean('TLS')) {
+            // check for TLS handshake
+            if ($this->State == TLSState::TLSisSend || $this->State == TLSState::TLSisReceived) {
+                $this->WaitForResponse(TLSState::TLSisSend);
+                $this->SendDebug('Receive TLS Handshake', $buffer, 0);
+                $this->Handshake = $buffer;
+
+                $this->State = TLSState::TLSisReceived;
+                return;
+            }
+
+            if (!$this->Multi_TLS || $this->State != TLSState::Connected) {
+                return;
+            }
+
+            // decrypt TLS data
+            if ((ord($buffer[0]) >= 0x14) && (ord($buffer[0]) <= 0x18) && (substr($buffer, 1, 2) == "\x03\x03")) {
+                $TLSData = $buffer;
+                $buffer = '';
+                $TLS = $this->Multi_TLS;
+                while (strlen($TLSData) > 0) {
+                    $len = unpack('n', substr($TLSData, 3, 2))[1] + 5;
+                    if (strlen($TLSData) >= $len) {
+                        try {
+                            $Part = substr($TLSData, 0, $len);
+                            $TLSData = substr($TLSData, $len);
+                            $TLS->encode($Part);
+                            $buffer .= $TLS->input();
+                        } catch (Exception $e) {
+                            $this->SendDebug('TLS Error', $e->getMessage(), 0);
+                            $this->SetTimerInterval('MQTTC_Reconnect', 1000);
+                            return;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+
+                $this->Multi_TLS = $TLS;
+                if (strlen($TLSData) > 0) {
+                    $this->SendDebug('Receive TLS Part', $TLSData, 0);
+                }
+            } else { // buffer does not match
+                return;
+            }
+        }
+
+        $this->SendDebug('ReceiveData', $buffer, 0);
+
+        if (!is_null($this->mqtt)) {
+            $this->mqtt->receive($buffer);
+            $sClass = serialize($this->mqtt);
+            $this->SetBuffer('MQTT', $sClass);
+        } else {
+            $this->SendDebug(__FUNCTION__, 'MQTT = NULL', 0);
+            if ($this->HasActiveParent()) {
+                $this->MQTTConnect();
+            }
+        }
+    }
+
+    public function ForwardData($JSONString)
+    {
+        $this->SendDebug(__FUNCTION__ . 'JSONString:', $JSONString, 0);
+        $data = json_decode($JSONString);
+        $Buffer = utf8_decode($data->Buffer);
+        $Buffer = json_decode($Buffer);
+        if (!isset($Buffer->Function)) {
+            $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
+            return;
+        }
+
+        switch ($Buffer->Function) {
+            case 'Subscribe':
+                $this->Subscribe($Buffer->Topic, 0);
+            break;
+
+            case 'Publish':
+                $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
+            break;
+        }
+    }
+
+    public function onConnectError(int $errno, string $errstr, string $errfile, int $errline, array $errcontext)
+    {
+        switch ($errno) {
+            case E_NOTICE:
+                return true;
+
+            case E_WARNING:
+                $this->LogMessage("Connect failed ($errstr)", KL_WARNING);
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    public function onSendText(string $Data)
+    {
+        $res = false;
+
+        if (!$this->HasActiveParent()) {
+            $this->SendDebug(__FUNCTION__, 'No active Parent', 0);
+            $this->SetTimerInterval('MQTTC_Ping', 0);
+            return $res;
+        }
+
+        if ($this->ReadPropertyBoolean('TLS')) {
+            // encrypt data
+            $TLS = $this->Multi_TLS;
+            $this->SendDebug('Send TLS', $Data, 0);
+            $Data = $TLS->output($Data)->decode();
+            $this->Multi_TLS = $TLS;
+        }
+
+        $json = json_encode(
+            ['DataID'    => self::guid_socket, //IO-TX
+                'Buffer' => utf8_encode($Data)]
+        );
+        if ($this->HasActiveParent()) {
+            $res = parent::SendDataToParent($json);
+        } else {
+            $this->SendDebug(__FUNCTION__, 'No active Parent', 0);
+        }
+        $this->SetTimerInterval('MQTTC_Ping', $this->ReadPropertyInteger('PingInterval') * 1000);
+        return $res;
+    }
+
+    public function onDebug(string $topic, string $data, int $Format = 0)
+    {
+        $this->SendDebug($topic, $data, $Format);
+    }
+
+    public function onReceive(array $para)
+    {
+        //if Script oder Forward
+        if ($this->ReadPropertyInteger('ModuleType') == 1) {
+            $scriptid = $this->ReadPropertyInteger('script');
+            IPS_RunScriptEx($scriptid, $para);
+        }
+
+        if ($this->ReadPropertyInteger('ModuleType') == 2) {
+            if ($para['SENDER'] == 'MQTT_CONNECT' && $this->ReadPropertyBoolean('AutoSubscribe')) {
+                $this->Subscribe('#', 0);
+            }
+
+            $JSON['DataID'] = '{DBDA9DF7-5D04-F49D-370A-2B9153D00D9B}';
+            $JSON['Buffer'] = json_encode($para, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+            $Data = json_encode($JSON, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $this->SendDebug('SendDataToChildren', print_r($Data, true), 0);
+            $this->SendDataToChildren($Data);
+        }
+    }
+
+    public function Ping()
+    {
+        if (!is_null($this->mqtt)) {
+            $this->mqtt->ping();
+        }
+    }
+
+    public function Publish(string $topic, string $content, int $qos = 0, int $retain = 0)
+    {
+        if (!is_null($this->mqtt)) {
+            $this->mqtt->publish($topic, $content, $qos, $retain);
+        } else {
+            $this->SendDebug(__FUNCTION__, 'Error, Publish nicht möglich', 0);
+        }
+    }
+
+    public function Subscribe(string $topic, int $qos = 0)
+    {
+        if (!is_null($this->mqtt)) {
+            $this->mqtt->subscribe($topic, $qos);
+        } else {
+            $this->SendDebug(__FUNCTION__, 'Error, Subscribe nicht möglich', 0);
+        }
+    }
+
+    /**
+     * Init TLS connection to client socket
+     * @return bool
+     */
     private function CreateTLSConnection()
     {
         // return true, if event channel is still connected
@@ -183,7 +387,7 @@ class MQTTClient extends IPSModule
         $this->SendDebug('TLS start', '', 0);
         $loop = 1;
         $SendData = $TLS->decode();
-        $this->SendDebug("Send TLS Handshake", '', 0);
+        $this->SendDebug('Send TLS Handshake', '', 0);
 
         // send handshake data
         $JSON['DataID'] = self::guid_socket;
@@ -270,23 +474,6 @@ class MQTTClient extends IPSModule
     }
 
     /**
-     * Reconnect parent socket
-     * @param bool $force
-     */
-    public function Reconnect(bool $force = false)
-    {
-        $this->SendDebug(__FUNCTION__, "Force: $force", 0);
-        $cID = $this->GetConnectionID();
-        if (($this->HasActiveParent() || $force) && $cID > 0) {
-            set_error_handler([$this, 'onConnectError']);
-            if (IPS_SetProperty($cID, 'Open', true)) {
-                IPS_ApplyChanges($cID);
-            }
-            restore_error_handler();
-        }
-    }
-
-    /**
      * Waits for client socket response
      * @param int $State
      * @return bool|string
@@ -302,193 +489,6 @@ class MQTTClient extends IPSModule
             IPS_Sleep(5);
         }
         return false;
-    }
-
-    public function ReceiveData($JSONString)
-    {
-        // convert json data to array
-        $data = json_decode($JSONString);
-        $buffer = utf8_decode($data->Buffer);
-
-        if ($this->ReadPropertyBoolean('TLS')) {
-            // check for TLS handshake
-            if ($this->State == TLSState::TLSisSend || $this->State == TLSState::TLSisReceived) {
-                $this->WaitForResponse(TLSState::TLSisSend);
-                $this->SendDebug('Receive TLS Handshake', $buffer, 0);
-                $this->Handshake = $buffer;
-
-                $this->State = TLSState::TLSisReceived;
-                return;
-            }
-
-            if (!$this->Multi_TLS || $this->State != TLSState::Connected) {
-                return;
-            }
-
-            // decrypt TLS data
-            if ((ord($buffer[0]) >= 0x14) && (ord($buffer[0]) <= 0x18) && (substr($buffer, 1, 2) == "\x03\x03")) {
-                $TLSData = $buffer;
-                $buffer = '';
-                $TLS = $this->Multi_TLS;
-                while (strlen($TLSData) > 0) {
-                    $len = unpack("n", substr($TLSData, 3, 2))[1] + 5;
-                    if (strlen($TLSData) >= $len) {
-                        try {
-                            $Part = substr($TLSData, 0, $len);
-                            $TLSData = substr($TLSData, $len);
-                            $TLS->encode($Part);
-                            $buffer .= $TLS->input();
-                        } catch (Exception $e) {
-                            $this->SendDebug('TLS Error', $e->getMessage(), 0);
-                            $this->SetTimerInterval('MQTTC_Reconnect', 1000);
-                            return;
-                        }
-                    } else {
-                        break;
-                    }
-                }
-
-                $this->Multi_TLS = $TLS;
-                if (strlen($TLSData) > 0) {
-                    $this->SendDebug('Receive TLS Part', $TLSData, 0);
-                }
-            } else { // buffer does not match
-                return;
-            }
-        }
-
-        $this->SendDebug('ReceiveData', $buffer, 0);
-
-        if (!is_null($this->mqtt)) {
-            $this->mqtt->receive($buffer);
-            $sClass = serialize($this->mqtt);
-            $this->SetBuffer('MQTT', $sClass);
-        } else {
-            $this->SendDebug(__FUNCTION__, 'MQTT = NULL', 0);
-            if ($this->HasActiveParent()) {
-                $this->MQTTConnect();
-            }
-        }
-    }
-
-    public function ForwardData($JSONString)
-    {
-        $this->SendDebug(__FUNCTION__ . 'JSONString:', $JSONString, 0);
-        $data = json_decode($JSONString);
-        $Buffer = utf8_decode($data->Buffer);
-        $Buffer = json_decode($Buffer);
-        if (!isset($Buffer->Function)) {
-            $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
-            return;
-        }
-
-        switch ($Buffer->Function) {
-            case 'Subscribe':
-                $this->Subscribe($Buffer->Topic, 0);
-            break;
-
-            case 'Publish':
-                $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
-            break;
-        }
-    }
-
-    public function onConnectError(int $errno, string $errstr, string $errfile, int $errline, array $errcontext)
-    {
-        switch ($errno) {
-            case E_NOTICE:
-                return true;
-
-            case E_WARNING:
-                $this->LogMessage("Connect failed ($errstr)", KL_WARNING);
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
-    public function onSendText(string $Data)
-    {
-        $res = false;
-
-        if (!$this->HasActiveParent()) {
-            $this->SendDebug(__FUNCTION__, 'No active Parent', 0);
-            $this->SetTimerInterval('MQTTC_Ping', 0);
-            return $res;
-        }
-        
-        if ($this->ReadPropertyBoolean('TLS')) {
-            // encrypt data
-            $TLS = $this->Multi_TLS;
-            $this->SendDebug('Send TLS', $Data, 0);
-            $Data = $TLS->output($Data)->decode();
-            $this->Multi_TLS = $TLS;
-        }
-
-        $json = json_encode(
-            ['DataID'    => self::guid_socket, //IO-TX
-                'Buffer' => utf8_encode($Data)]
-        );
-        if ($this->HasActiveParent()) {
-            $res = parent::SendDataToParent($json);
-        } else {
-            $this->SendDebug(__FUNCTION__, 'No active Parent', 0);
-        }
-        $this->SetTimerInterval('MQTTC_Ping', $this->ReadPropertyInteger('PingInterval') * 1000);
-        return $res;
-    }
-
-    public function onDebug(string $topic, string $data, int $Format = 0)
-    {
-        $this->SendDebug($topic, $data, $Format);
-    }
-
-    public function onReceive(array $para)
-    {
-        //if Script oder Forward
-        if ($this->ReadPropertyInteger('ModuleType') == 1) {
-            $scriptid = $this->ReadPropertyInteger('script');
-            IPS_RunScriptEx($scriptid, $para);
-        }
-
-        if ($this->ReadPropertyInteger('ModuleType') == 2) {
-            if ($para['SENDER'] == 'MQTT_CONNECT' && $this->ReadPropertyBoolean('AutoSubscribe')) {
-                $this->Subscribe('#', 0);
-            }
-
-            $JSON['DataID'] = '{DBDA9DF7-5D04-F49D-370A-2B9153D00D9B}';
-            $JSON['Buffer'] = json_encode($para, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-            $Data = json_encode($JSON, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            $this->SendDebug('SendDataToChildren', print_r($Data, true), 0);
-            $this->SendDataToChildren($Data);
-        }
-    }
-
-    public function Ping()
-    {
-        if (!is_null($this->mqtt)) {
-            $this->mqtt->ping();
-        }
-    }
-
-    public function Publish(string $topic, string $content, int $qos = 0, int $retain = 0)
-    {
-        if (!is_null($this->mqtt)) {
-            $this->mqtt->publish($topic, $content, $qos, $retain);
-        } else {
-            $this->SendDebug(__FUNCTION__, 'Error, Publish nicht möglich', 0);
-        }
-    }
-
-    public function Subscribe(string $topic, int $qos = 0)
-    {
-        if (!is_null($this->mqtt)) {
-            $this->mqtt->subscribe($topic, $qos);
-        } else {
-            $this->SendDebug(__FUNCTION__, 'Error, Subscribe nicht möglich', 0);
-        }
     }
 
     private function MQTTDisconnect()

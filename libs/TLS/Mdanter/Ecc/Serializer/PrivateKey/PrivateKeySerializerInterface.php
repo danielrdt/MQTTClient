@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Serializer\PrivateKey;
 
 use Mdanter\Ecc\Crypto\Key\PrivateKeyInterface;

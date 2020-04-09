@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Handshake;
 
-use PTLS\Core;
-use PTLS\Prf;
 use PTLS\CipherSuites;
-use PTLS\Exceptions\TLSAlertException;
 use PTLS\Content\Alert;
+use PTLS\Core;
+use PTLS\Exceptions\TLSAlertException;
+use PTLS\Prf;
 
 class ClientHello extends HandshakeAbstract
 {
@@ -78,7 +80,7 @@ class ClientHello extends HandshakeAbstract
         $compressionMethod = Core::_unpack('C', $data[1]);
 
         if ($compressionMethod != 0x00) {
-            throw new TLSAlertException(Alert::create(Alert::HANDSHAKE_FAILURE), "compressionMethod is not null");
+            throw new TLSAlertException(Alert::create(Alert::HANDSHAKE_FAILURE), 'compressionMethod is not null');
         }
 
         $core->setCompressionMethod($compressionMethod);
@@ -95,7 +97,7 @@ class ClientHello extends HandshakeAbstract
         $cipherID = CipherSuites::pickCipherID($core, $cipherIDs);
 
         if (is_null($cipherID)) {
-            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), "Cipher Suite not found");
+            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), 'Cipher Suite not found');
         }
 
         $core->cipherSuite = new CipherSuites($cipherID);
@@ -166,19 +168,19 @@ class ClientHello extends HandshakeAbstract
 
         // [$cipher1 , $cipher2]
         foreach ($this->requestCipherIDs as $value) {
-            $cipherSuites[] = "0x" . dechex($value[0]) . dechex($value[1]);
+            $cipherSuites[] = '0x' . dechex($value[0]) . dechex($value[1]);
         }
 
         $extensions = [];
 
         // ['type' => $extType, 'data' => $extData]
         foreach ($this->requestedExtensions as $value) {
-            $extensions[] = "Type: " . dechex($value['type'])
+            $extensions[] = 'Type: ' . dechex($value['type'])
                 . ' Data Length: ' . strlen($value['data']);
         }
 
         return "[HandshakeType::ServerHello]\n"
-            . "Lengh:            " . $this->length . "\n"
+            . 'Lengh:            ' . $this->length . "\n"
             . "Protocol Version: $protoVersion \n"
             . "Session ID:       $sessionID \n"
             . "[CipherSuites]\n"

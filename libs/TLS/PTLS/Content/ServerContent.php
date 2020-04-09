@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Content;
 
-use PTLS\Core;
 use PTLS\ContentType;
-use PTLS\Handshake\HandshakeType;
-use PTLS\Handshake\HandshakeFactory;
+use PTLS\Core;
 use PTLS\Exceptions\TLSAlertException;
+use PTLS\Handshake\HandshakeFactory;
+use PTLS\Handshake\HandshakeType;
 
 class ServerContent extends ContentAbstract
 {
@@ -47,7 +49,7 @@ class ServerContent extends ContentAbstract
         }
 
         if ($this->expectedHandshakeType != $handshakeType) {
-            throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE), "Unexpected handshake message");
+            throw new TLSAlertException(Alert::create(Alert::UNEXPECTED_MESSAGE), 'Unexpected handshake message');
         }
 
         $handshake = HandshakeFactory::getInstance($core, $handshakeType);

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Crypto\EcDH;
 
 /**
@@ -25,15 +27,14 @@ namespace Mdanter\Ecc\Crypto\EcDH;
  * OTHER DEALINGS IN THE SOFTWARE.
  * ***********************************************************************
  */
-use Mdanter\Ecc\Crypto\Key\PublicKeyInterface;
 use Mdanter\Ecc\Crypto\Key\PrivateKeyInterface;
+use Mdanter\Ecc\Crypto\Key\PublicKeyInterface;
 
 /**
  * This is the contract for implementing EcDH (EC Diffie Hellman).
  */
 interface EcDHInterface
 {
-
     /**
      * Calculates and returns the shared key for the exchange.
      *

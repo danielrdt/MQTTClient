@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS;
 
 use PTLS\Exceptions\TLSException;
@@ -38,7 +40,7 @@ class X509
             $der = base64_decode(str_replace("\n", '', $pem));
 
             if (!self::verifyCrt($der)) {
-                throw new TLSException("Invalid Certificate");
+                throw new TLSException('Invalid Certificate');
             }
 
             $crtDers[] = $der;
@@ -53,7 +55,7 @@ class X509
     public static function crtFilePemToDer(array $files)
     {
         if (!count($files)) {
-            throw new TLSException("No certificate files");
+            throw new TLSException('No certificate files');
         }
 
         $pem = '';
@@ -65,16 +67,15 @@ class X509
         return self::crtPemToDer($pem);
     }
 
-    public static function getPrivateKey($file, $passCode = "")
+    public static function getPrivateKey($file, $passCode = '')
     {
         $privateKey = file_get_contents($file);
         return openssl_get_privatekey($privateKey, $passCode);
     }
 
-
     public static function getPublicKey(array $crtDers)
     {
-        $pem = X509::crtDerToPem($crtDers[0]);
+        $pem = self::crtDerToPem($crtDers[0]);
         $publicKey = openssl_pkey_get_public($pem);
 
         return $publicKey;

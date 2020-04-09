@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Assert
  *
@@ -21,6 +23,13 @@ class LazyAssertionException extends InvalidArgumentException
      */
     private $errors = [];
 
+    public function __construct($message, array $errors)
+    {
+        parent::__construct($message, 0, null, null);
+
+        $this->errors = $errors;
+    }
+
     /**
      * @param InvalidArgumentException[] $errors
      *
@@ -36,13 +45,6 @@ class LazyAssertionException extends InvalidArgumentException
         }
 
         return new static($message, $errors);
-    }
-
-    public function __construct($message, array $errors)
-    {
-        parent::__construct($message, 0, null, null);
-
-        $this->errors = $errors;
     }
 
     public function getErrorExceptions()

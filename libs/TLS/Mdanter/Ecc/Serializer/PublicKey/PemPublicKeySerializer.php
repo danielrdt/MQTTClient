@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Serializer\PublicKey;
 
 use Mdanter\Ecc\Crypto\Key\PublicKeyInterface;
@@ -10,7 +12,6 @@ use Mdanter\Ecc\Crypto\Key\PublicKeyInterface;
  */
 class PemPublicKeySerializer implements PublicKeySerializerInterface
 {
-
     /**
      * @var DerPublicKeySerializer
      */

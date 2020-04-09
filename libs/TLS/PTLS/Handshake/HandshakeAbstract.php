@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Handshake;
 
-use PTLS\Core;
-use PTLS\ProtocolAbstract;
-use PTLS\Exceptions\TLSAlertException;
 use PTLS\Content\Alert;
+use PTLS\Core;
+use PTLS\Exceptions\TLSAlertException;
+use PTLS\ProtocolAbstract;
 
 abstract class HandshakeAbstract extends ProtocolAbstract
 {
@@ -28,7 +30,7 @@ abstract class HandshakeAbstract extends ProtocolAbstract
         $this->payload = $data;
 
         if ($this->length != strlen($data)) {
-            throw new TLSAlertException(Alert::create(Alert::ILLEGAL_PARAMETER), "Invalid Handshake payload: " . $this->length);
+            throw new TLSAlertException(Alert::create(Alert::ILLEGAL_PARAMETER), 'Invalid Handshake payload: ' . $this->length);
         }
 
         return $data;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Curves;
 
 use Mdanter\Ecc\Math\GmpMathInterface;
@@ -29,21 +31,16 @@ use Mdanter\Ecc\Random\RandomNumberGeneratorInterface;
  * OTHER DEALINGS IN THE SOFTWARE.
  * ***********************************************************************
  */
-
-/**
- *
- */
 class SecgCurve
 {
-    /**
-     * @var GmpMathInterface
-     */
-    private $adapter;
-
     const NAME_SECP_112R1 = 'secp112r1';
     const NAME_SECP_256K1 = 'secp256k1';
     const NAME_SECP_256R1 = 'secp256r1';
     const NAME_SECP_384R1 = 'secp384r1';
+    /**
+     * @var GmpMathInterface
+     */
+    private $adapter;
 
     /**
      * @param GmpMathInterface $adapter

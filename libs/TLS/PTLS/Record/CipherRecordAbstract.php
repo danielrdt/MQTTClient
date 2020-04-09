@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Record;
 
-use PTLS\Core;
-use PTLS\ContentType;
 use PTLS\ConnectionDuplex;
-use PTLS\Exceptions\TLSAlertException;
 use PTLS\Content\Alert;
+use PTLS\ContentType;
+use PTLS\Core;
+use PTLS\Exceptions\TLSAlertException;
 
 abstract class CipherRecordAbstract extends Record
 {

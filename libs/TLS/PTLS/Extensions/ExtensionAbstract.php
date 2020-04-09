@@ -1,19 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Extensions;
 
 use PTLS\Core;
 
 abstract class ExtensionAbstract
 {
-    private $core;
     protected $extType;
     protected $legnth;
+    private $core;
 
     public function __construct(Core $core)
     {
         $this->core = $core;
     }
+
+    abstract public function onEncodeClientHello($type, $data);
+
+    abstract public function onDecodeClientHello();
+
+    abstract public function onDecodeServerHello();
 
     protected function decodeHeader()
     {
@@ -25,10 +33,4 @@ abstract class ExtensionAbstract
 
         return $header;
     }
-
-    abstract public function onEncodeClientHello($type, $data);
-
-    abstract public function onDecodeClientHello();
-
-    abstract public function onDecodeServerHello();
 }

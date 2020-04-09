@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Crypto\Key;
 
 /**
@@ -25,7 +27,6 @@ namespace Mdanter\Ecc\Crypto\Key;
  * OTHER DEALINGS IN THE SOFTWARE.
  * ***********************************************************************
  */
-
 use Mdanter\Ecc\Math\GmpMathInterface;
 use Mdanter\Ecc\Primitives\CurveFpInterface;
 use Mdanter\Ecc\Primitives\GeneratorPoint;
@@ -81,7 +82,7 @@ class PublicKey implements PublicKeyInterface
         if ($adapter->cmp($point->getX(), gmp_init(0, 10)) < 0 || $adapter->cmp($n, $point->getX()) <= 0
             || $adapter->cmp($point->getY(), gmp_init(0, 10)) < 0 || $adapter->cmp($n, $point->getY()) <= 0
         ) {
-            throw new \RuntimeException("Generator point has x and y out of range.");
+            throw new \RuntimeException('Generator point has x and y out of range.');
         }
     }
 

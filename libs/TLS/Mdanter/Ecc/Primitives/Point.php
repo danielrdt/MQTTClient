@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Primitives;
 
 use Mdanter\Ecc\Math\GmpMathInterface;
@@ -95,17 +97,51 @@ class Point implements PointInterface
         $this->x = $x;
         $this->y = $y;
         $this->order = $order !== null ? $order : gmp_init(0, 10);
-        $this->infinity = (bool)$infinity;
+        $this->infinity = (bool) $infinity;
         if (!$infinity && !$curve->contains($x, $y)) {
-            throw new \RuntimeException("Curve " . $curve . " does not contain point (" . $adapter->toString($x) . ", " . $adapter->toString($y) . ")");
+            throw new \RuntimeException('Curve ' . $curve . ' does not contain point (' . $adapter->toString($x) . ', ' . $adapter->toString($y) . ')');
         }
 
         if (!is_null($order)) {
             $mul = $this->mul($order);
             if (!$mul->isInfinity()) {
-                throw new \RuntimeException("SELF * ORDER MUST EQUAL INFINITY. (" . (string)$mul . " found instead)");
+                throw new \RuntimeException('SELF * ORDER MUST EQUAL INFINITY. (' . (string) $mul . ' found instead)');
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     * @see \Mdanter\Ecc\PointInterface::__toString()
+     */
+    public function __toString()
+    {
+        if ($this->infinity) {
+            return '[ (infinity) on ' . (string) $this->curve . ' ]';
+        }
+
+        return '[ (' . $this->adapter->toString($this->x) . ',' . $this->adapter->toString($this->y) . ') on ' . (string) $this->curve . ' ]';
+    }
+
+    /**
+     * @return array
+     */
+    public function __debugInfo()
+    {
+        $info = [
+            'x'     => $this->adapter->toString($this->x),
+            'y'     => $this->adapter->toString($this->y),
+            'z'     => $this->adapter->toString($this->order),
+            'curve' => $this->curve
+        ];
+
+        if ($this->infinity) {
+            $info['x'] = 'inf (' . $info['x'] . ')';
+            $info['y'] = 'inf (' . $info['y'] . ')';
+            $info['z'] = 'inf (' . $info['z'] . ')';
+        }
+
+        return $info;
     }
 
     /**
@@ -122,7 +158,7 @@ class Point implements PointInterface
      */
     public function isInfinity()
     {
-        return (bool)$this->infinity;
+        return (bool) $this->infinity;
     }
 
     /**
@@ -169,7 +205,7 @@ class Point implements PointInterface
     public function add(PointInterface $addend)
     {
         if (!$this->curve->equals($addend->getCurve())) {
-            throw new \RuntimeException("The Elliptic Curves do not match.");
+            throw new \RuntimeException('The Elliptic Curves do not match.');
         }
 
         if ($addend->isInfinity()) {
@@ -290,24 +326,11 @@ class Point implements PointInterface
     }
 
     /**
-     * @param Point $a
-     * @param Point $b
-     * @param int $cond
-     */
-    private function cswap(self $a, self $b, $cond)
-    {
-        $this->cswapValue($a->x, $b->x, $cond);
-        $this->cswapValue($a->y, $b->y, $cond);
-        $this->cswapValue($a->order, $b->order, $cond);
-        $this->cswapValue($a->infinity, $b->infinity, $cond);
-    }
-
-    /**
      * @param $a
      * @param $b
      * @param $cond
      */
-    public function cswapValue(& $a, & $b, $cond)
+    public function cswapValue(&$a, &$b, $cond)
     {
         $isGMP = is_object($a) && $a instanceof \GMP;
 
@@ -326,18 +349,8 @@ class Point implements PointInterface
         $sb = $this->adapter->bitwiseXor($this->adapter->bitwiseXor($sa, $sb), $taA);
         $sa = $this->adapter->bitwiseXor($this->adapter->bitwiseXor($sa, $sb), $taB);
 
-        $a = $isGMP ? $sa : (bool)gmp_strval($sa, 10);
-        $b = $isGMP ? $sb : (bool)gmp_strval($sb, 10);
-    }
-
-    /**
-     *
-     */
-    private function validate()
-    {
-        if (!$this->infinity && !$this->curve->contains($this->x, $this->y)) {
-            throw new \RuntimeException('Invalid point');
-        }
+        $a = $isGMP ? $sa : (bool) gmp_strval($sa, 10);
+        $b = $isGMP ? $sb : (bool) gmp_strval($sb, 10);
     }
 
     /**
@@ -376,36 +389,22 @@ class Point implements PointInterface
     }
 
     /**
-     * {@inheritDoc}
-     * @see \Mdanter\Ecc\PointInterface::__toString()
+     * @param Point $a
+     * @param Point $b
+     * @param int $cond
      */
-    public function __toString()
+    private function cswap(self $a, self $b, $cond)
     {
-        if ($this->infinity) {
-            return '[ (infinity) on ' . (string)$this->curve . ' ]';
-        }
-
-        return "[ (" . $this->adapter->toString($this->x) . "," . $this->adapter->toString($this->y) . ') on ' . (string)$this->curve . ' ]';
+        $this->cswapValue($a->x, $b->x, $cond);
+        $this->cswapValue($a->y, $b->y, $cond);
+        $this->cswapValue($a->order, $b->order, $cond);
+        $this->cswapValue($a->infinity, $b->infinity, $cond);
     }
 
-    /**
-     * @return array
-     */
-    public function __debugInfo()
+    private function validate()
     {
-        $info = [
-            'x' => $this->adapter->toString($this->x),
-            'y' => $this->adapter->toString($this->y),
-            'z' => $this->adapter->toString($this->order),
-            'curve' => $this->curve
-        ];
-
-        if ($this->infinity) {
-            $info['x'] = 'inf (' . $info['x'] . ')';
-            $info['y'] = 'inf (' . $info['y'] . ')';
-            $info['z'] = 'inf (' . $info['z'] . ')';
+        if (!$this->infinity && !$this->curve->contains($this->x, $this->y)) {
+            throw new \RuntimeException('Invalid point');
         }
-
-        return $info;
     }
 }

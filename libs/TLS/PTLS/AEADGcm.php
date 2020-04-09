@@ -1,55 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS;
 
 use AESGCM\AESGCM;
-use PTLS\Exceptions\TLSAlertException;
 use PTLS\Content\Alert;
+use PTLS\Exceptions\TLSAlertException;
 
 class AEADGcm
 {
     // A tag is alway 16 bytes long
     const TAG_LEN = 16;
-
-    /**
-     * PHP supports AES GCM from version 7.1
-     *
-     * https://github.com/php/php-src/pull/1716
-     * https://wiki.php.net/rfc/openssl_aead
-     *
-     */
-    private static function useOpenSSL()
-    {
-        return (version_compare(PHP_VERSION, '7.1') >= 0) ? true : false;
-    }
-
-    /**
-     * https://github.com/bukka/php-crypto
-     *
-     * Objective PHP binding of OpenSSL Crypto library
-     *
-     */
-    private static function useSO()
-    {
-        return class_exists('\Crypto\Cipher') ? true : false;
-    }
-
-    private static function bitLen($password)
-    {
-        // 128(16), 192(24) or 256(32)
-        $l = strlen($password);
-
-        if ($l != 16 && $l != 24 && $l != 32) {
-            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), "Invalid gcm key length: $l");
-        }
-
-        return $l * 8;
-    }
-
-    private static function getMethod($password)
-    {
-        return "aes-" . self::bitLen($password) . "-gcm";
-    }
 
     public static function encrypt($data, $password, $IV, $AAD)
     {
@@ -124,5 +86,45 @@ class AEADGcm
         }
 
         return $data;
+    }
+
+    /**
+     * PHP supports AES GCM from version 7.1
+     *
+     * https://github.com/php/php-src/pull/1716
+     * https://wiki.php.net/rfc/openssl_aead
+     *
+     */
+    private static function useOpenSSL()
+    {
+        return (version_compare(PHP_VERSION, '7.1') >= 0) ? true : false;
+    }
+
+    /**
+     * https://github.com/bukka/php-crypto
+     *
+     * Objective PHP binding of OpenSSL Crypto library
+     *
+     */
+    private static function useSO()
+    {
+        return class_exists('\Crypto\Cipher') ? true : false;
+    }
+
+    private static function bitLen($password)
+    {
+        // 128(16), 192(24) or 256(32)
+        $l = strlen($password);
+
+        if ($l != 16 && $l != 24 && $l != 32) {
+            throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), "Invalid gcm key length: $l");
+        }
+
+        return $l * 8;
+    }
+
+    private static function getMethod($password)
+    {
+        return 'aes-' . self::bitLen($password) . '-gcm';
     }
 }

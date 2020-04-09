@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Content;
 
-use PTLS\Core;
 use PTLS\ContentType;
-use PTLS\Handshake\HandshakeType;
-use PTLS\Handshake\HandshakeFactory;
+use PTLS\Core;
 use PTLS\Exceptions\TLSAlertException;
+use PTLS\Handshake\HandshakeFactory;
+use PTLS\Handshake\HandshakeType;
 
 class ClientContent extends ContentAbstract
 {
@@ -47,7 +49,7 @@ class ClientContent extends ContentAbstract
         if ($core->isHandshaked) {
             throw new TLSAlertException(
                 Alert::create(Alert::UNEXPECTED_MESSAGE),
-                "Handshake message received after handshake is complete"
+                'Handshake message received after handshake is complete'
             );
         }
         /*

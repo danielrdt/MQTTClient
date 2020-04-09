@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Extensions;
 
+use PTLS\Content\Alert;
 use PTLS\Core;
-use PTLS\Handshake\HandshakeFactory;
-use PTLS\Handshake\HandshakeType;
 use PTLS\EcDH;
 use PTLS\Exceptions\TLSAlertException;
-use PTLS\Content\Alert;
+use PTLS\Handshake\HandshakeFactory;
+use PTLS\Handshake\HandshakeType;
 
 /**
  * https://tools.ietf.org/html/rfc4492#section-5.1
@@ -78,35 +80,6 @@ class Curve extends ExtensionAbstract
         }
     }
 
-    /**
-     * ec_point_formats(11)
-     *
-     * https://tools.ietf.org/html/rfc4492#section-5.1.2
-     *
-     * enum { uncompressed (0), ansiX962_compressed_prime (1),
-     *   ansiX962_compressed_char2 (2), reserved (248..255)
-     * } ECPointFormat;
-     *
-     * struct {
-     *   ECPointFormat ec_point_format_list<1..2^8-1>
-     * } ECPointFormatList;
-     *
-     * We ONLY support uncompressed(0)
-     */
-    private function encodeEcPointFormat($data)
-    {
-        $length = Core::_unpack('C', $data[0]);
-        $data = substr($data, 1);
-
-        for ($i = 0; $i < $length; $i++) {
-            $format = Core::_unpack('C', $data[$i]);
-            if ($format == 0) {
-                $this->isUncompressed = true;
-                break;
-            }
-        }
-    }
-
     public function onEncodeServerHello($type, $data)
     {
         $core = $this->core;
@@ -116,17 +89,6 @@ class Curve extends ExtensionAbstract
         }
 
         $this->encodeEcPointFormat($data);
-    }
-
-    private function decodeEcPointFormat()
-    {
-        // ec_point_format - uncompressed
-        $data = Core::_pack('C', 1) . Core::_pack('C', 0);
-
-        $this->extType = TLSExtensions::TYPE_EC_POINT_FORMATS;
-        $this->length = strlen($data);
-
-        return $this->decodeHeader() . $data;
     }
 
     public function onDecodeClientHello()
@@ -178,7 +140,7 @@ class Curve extends ExtensionAbstract
         if ($curveType != 0x03) {
             throw new TLSAlertException(
                 Alert::create(Alert::INTERNAL_ERROR),
-                "Not named curve type: " + $curveType
+                'Not named curve type: ' + $curveType
             );
         }
 
@@ -187,7 +149,7 @@ class Curve extends ExtensionAbstract
         if (!EcDH::isSupported($namedCurveType)) {
             throw new TLSAlertException(
                 Alert::create(Alert::INTERNAL_ERROR),
-                "Unknow named curve: " + $namedCurveType
+                'Unknow named curve: ' + $namedCurveType
             );
         }
 
@@ -242,17 +204,17 @@ class Curve extends ExtensionAbstract
         $data .= Core::_pack('C', strlen($dataPublicKey)) . $dataPublicKey;
 
         /*
-          * Signature
-          *
-          * https://tools.ietf.org/html/rfc4492 Page 19
-          * signed_params:   A hash of the params, with the signature appropriate
-          * to that hash applied.  The private key corresponding to the
-          * certified public key in the server's Certificate message is used
-          * for signing.
-          *
-          * ServerKeyExchange.signed_params.sha_hash
-          *    SHA(ClientHello.random + ServerHello.random +
-          *                                      ServerKeyExchange.params);
+         * Signature
+         *
+         * https://tools.ietf.org/html/rfc4492 Page 19
+         * signed_params:   A hash of the params, with the signature appropriate
+         * to that hash applied.  The private key corresponding to the
+         * certified public key in the server's Certificate message is used
+         * for signing.
+         *
+         * ServerKeyExchange.signed_params.sha_hash
+         *    SHA(ClientHello.random + ServerHello.random +
+         *                                      ServerKeyExchange.params);
          */
         $connIn = $core->getInDuplex();
         $connOut = $core->getOutDuplex();
@@ -302,5 +264,45 @@ class Curve extends ExtensionAbstract
     {
         $ecdh = $this->ecdh;
         return $ecdh->getPublicKey();
+    }
+
+    /**
+     * ec_point_formats(11)
+     *
+     * https://tools.ietf.org/html/rfc4492#section-5.1.2
+     *
+     * enum { uncompressed (0), ansiX962_compressed_prime (1),
+     *   ansiX962_compressed_char2 (2), reserved (248..255)
+     * } ECPointFormat;
+     *
+     * struct {
+     *   ECPointFormat ec_point_format_list<1..2^8-1>
+     * } ECPointFormatList;
+     *
+     * We ONLY support uncompressed(0)
+     */
+    private function encodeEcPointFormat($data)
+    {
+        $length = Core::_unpack('C', $data[0]);
+        $data = substr($data, 1);
+
+        for ($i = 0; $i < $length; $i++) {
+            $format = Core::_unpack('C', $data[$i]);
+            if ($format == 0) {
+                $this->isUncompressed = true;
+                break;
+            }
+        }
+    }
+
+    private function decodeEcPointFormat()
+    {
+        // ec_point_format - uncompressed
+        $data = Core::_pack('C', 1) . Core::_pack('C', 0);
+
+        $this->extType = TLSExtensions::TYPE_EC_POINT_FORMATS;
+        $this->length = strlen($data);
+
+        return $this->decodeHeader() . $data;
     }
 }

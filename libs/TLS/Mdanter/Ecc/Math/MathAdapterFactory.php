@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Math;
 
 class MathAdapterFactory
@@ -26,7 +28,7 @@ class MathAdapterFactory
 
         $adapter = new GmpMath();
 
-        return self::wrapAdapter($adapter, (bool)$debug);
+        return self::wrapAdapter($adapter, (bool) $debug);
     }
 
     /**

@@ -1,10 +1,13 @@
 <?php
+
+declare(strict_types=1);
 /**
  * Class Autoloader
  */
-spl_autoload_register(function ($className) {
+spl_autoload_register(function ($className)
+{
     // file
-    $file =  DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $className) . '.php';
+    $file = DIRECTORY_SEPARATOR . str_replace('\\', DIRECTORY_SEPARATOR, $className) . '.php';
 
     // find in helpers dir
     $helperDir = __DIR__;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Random;
 
 use Mdanter\Ecc\Crypto\Key\PrivateKeyInterface;
@@ -33,7 +35,7 @@ class HmacRandomNumberGenerator implements RandomNumberGeneratorInterface
      * @var array
      */
     private $algSize = [
-        'sha1' => 160,
+        'sha1'   => 160,
         'sha224' => 224,
         'sha256' => 256,
         'sha384' => 385,
@@ -84,7 +86,7 @@ class HmacRandomNumberGenerator implements RandomNumberGeneratorInterface
      */
     public function int2octets(\GMP $int, \GMP $rlen)
     {
-        $out = pack("H*", $this->math->decHex(gmp_strval($int, 10)));
+        $out = pack('H*', $this->math->decHex(gmp_strval($int, 10)));
         $length = gmp_init(BinaryString::length($out), 10);
         if ($this->math->cmp($length, $rlen) < 0) {
             return str_pad('', $this->math->toString($this->math->sub($rlen, $length)), "\x00") . $out;
@@ -95,15 +97,6 @@ class HmacRandomNumberGenerator implements RandomNumberGeneratorInterface
         }
 
         return $out;
-    }
-
-    /**
-     * @param string $algorithm
-     * @return int
-     */
-    private function getHashLength($algorithm)
-    {
-        return $this->algSize[$algorithm];
     }
 
     /**
@@ -145,5 +138,14 @@ class HmacRandomNumberGenerator implements RandomNumberGeneratorInterface
             $k = hash_hmac($this->algorithm, $v . "\x00", $k, true);
             $v = hash_hmac($this->algorithm, $v, $k, true);
         }
+    }
+
+    /**
+     * @param string $algorithm
+     * @return int
+     */
+    private function getHashLength($algorithm)
+    {
+        return $this->algSize[$algorithm];
     }
 }

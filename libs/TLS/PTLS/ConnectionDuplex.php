@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS;
 
-use PTLS\Record\BlockCipherRecord;
-use PTLS\Record\AEADCipherRecord;
-use PTLS\Record\Record;
-use PTLS\Exceptions\TLSException;
-use PTLS\Exceptions\TLSAlertException;
 use PTLS\Content\Alert;
+use PTLS\Exceptions\TLSAlertException;
+use PTLS\Exceptions\TLSException;
+use PTLS\Record\AEADCipherRecord;
+use PTLS\Record\BlockCipherRecord;
+use PTLS\Record\Record;
 
 class ConnectionDuplex
 {
@@ -87,7 +89,7 @@ class ConnectionDuplex
             $data = $record->get('dataRest');
 
             if ($strlen == strlen($data)) {
-                throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), "Failed on encodeRecord");
+                throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), 'Failed on encodeRecord');
             }
         }
     }
@@ -97,11 +99,11 @@ class ConnectionDuplex
         $core = $this->core;
 
         if (!$core->isHandshaked) {
-            throw new TLSException("Handshake is not finished");
+            throw new TLSException('Handshake is not finished');
         }
 
         if (0 >= strlen($data)) {
-            throw new TLSException("Empty output");
+            throw new TLSException('Empty output');
         }
 
         $record = $this->getRecord();

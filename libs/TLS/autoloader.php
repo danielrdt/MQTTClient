@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 $autoloader = new AutoloaderTLS('PTLS');
 $autoloader->register();
 

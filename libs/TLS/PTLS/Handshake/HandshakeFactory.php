@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Handshake;
 
 use PTLS\Core;
-use PTLS\Handshake\HandshakeType;
 use PTLS\Exceptions\TLSAlertException;
+use PTLS\Handshake\HandshakeType;
 
 abstract class HandshakeFactory
 {

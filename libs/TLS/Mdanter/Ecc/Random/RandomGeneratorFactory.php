@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Random;
 
 use Mdanter\Ecc\Crypto\Key\PrivateKeyInterface;

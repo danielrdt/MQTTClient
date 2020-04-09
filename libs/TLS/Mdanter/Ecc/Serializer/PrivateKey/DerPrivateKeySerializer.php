@@ -1,19 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Serializer\PrivateKey;
 
+use FG\ASN1\ExplicitlyTaggedObject;
 use FG\ASN1\Object;
-use FG\ASN1\Universal\Sequence;
-use FG\ASN1\Universal\Integer;
 use FG\ASN1\Universal\BitString;
+use FG\ASN1\Universal\Integer;
 use FG\ASN1\Universal\OctetString;
+use FG\ASN1\Universal\Sequence;
 use Mdanter\Ecc\Crypto\Key\PrivateKeyInterface;
 use Mdanter\Ecc\Math\GmpMathInterface;
 use Mdanter\Ecc\Math\MathAdapterFactory;
-use Mdanter\Ecc\Serializer\Util\CurveOidMapper;
-use Mdanter\Ecc\Serializer\PublicKey\PemPublicKeySerializer;
 use Mdanter\Ecc\Serializer\PublicKey\DerPublicKeySerializer;
-use FG\ASN1\ExplicitlyTaggedObject;
+use Mdanter\Ecc\Serializer\PublicKey\PemPublicKeySerializer;
+use Mdanter\Ecc\Serializer\Util\CurveOidMapper;
 
 /**
  * PEM Private key formatter
@@ -61,26 +63,6 @@ class DerPrivateKeySerializer implements PrivateKeySerializerInterface
     }
 
     /**
-     * @param PrivateKeyInterface $key
-     * @return BitString
-     */
-    private function encodePubKey(PrivateKeyInterface $key)
-    {
-        return new BitString(
-            $this->pubKeySerializer->getUncompressedKey($key->getPublicKey())
-        );
-    }
-
-    /**
-     * @param PrivateKeyInterface $key
-     * @return string
-     */
-    private function formatKey(PrivateKeyInterface $key)
-    {
-        return gmp_strval($key->getSecret(), 16);
-    }
-
-    /**
      * @param string $data
      * {@inheritDoc}
      * @see \Mdanter\Ecc\Serializer\PrivateKeySerializerInterface::parse()
@@ -107,5 +89,25 @@ class DerPrivateKeySerializer implements PrivateKeySerializerInterface
         $generator = CurveOidMapper::getGeneratorFromOid($oid);
 
         return $generator->getPrivateKeyFrom($key);
+    }
+
+    /**
+     * @param PrivateKeyInterface $key
+     * @return BitString
+     */
+    private function encodePubKey(PrivateKeyInterface $key)
+    {
+        return new BitString(
+            $this->pubKeySerializer->getUncompressedKey($key->getPublicKey())
+        );
+    }
+
+    /**
+     * @param PrivateKeyInterface $key
+     * @return string
+     */
+    private function formatKey(PrivateKeyInterface $key)
+    {
+        return gmp_strval($key->getSecret(), 16);
     }
 }

@@ -80,7 +80,7 @@ class phpMQTT
 
     /* connects to the broker
         inputs: $clean: should the client send a clean session flag */
-    public function connect($clean = true, $will = null, $username = null, $password = null, $version = phpMQTT::MQTT_VERSION_311)
+    public function connect($clean = true, $will = null, $username = null, $password = null, $version = self::MQTT_VERSION_311)
     {
         $this->status = 1;
 
@@ -100,7 +100,7 @@ class phpMQTT
         $buffer .= chr(0x00);
         $i++;
         switch ($version) {
-            case phpMQTT::MQTT_VERSION_31:
+            case self::MQTT_VERSION_31:
                 $buffer .= chr(0x06);
                 $i++;
                 $buffer .= chr(0x4d);
@@ -134,7 +134,7 @@ class phpMQTT
                 $i++;   // Version
                 break;
         }
-        
+
         //No Will
         $var = 0;
         if ($clean) {

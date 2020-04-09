@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Serializer\Point;
 
 use Mdanter\Ecc\Math\GmpMathInterface;

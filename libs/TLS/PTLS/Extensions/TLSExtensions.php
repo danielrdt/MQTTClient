@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace PTLS\Extensions;
 
 use PTLS\Core;
@@ -15,8 +17,8 @@ class TLSExtensions
     const TYPE_SIGNATURE_ALGORITHM = 13;
 
     public static $supportedList = [
-        self::TYPE_ELLIPTIC_CURVES => 'Curve',
-        self::TYPE_EC_POINT_FORMATS => 'Curve',
+        self::TYPE_ELLIPTIC_CURVES     => 'Curve',
+        self::TYPE_EC_POINT_FORMATS    => 'Curve',
         self::TYPE_SIGNATURE_ALGORITHM => 'SignatureAlgorithm',
     ];
 
@@ -35,64 +37,6 @@ class TLSExtensions
 
             $this->instances[$className] = $this->getExtension($type);
         }
-    }
-
-    private function getExtension($type)
-    {
-        switch ($type) {
-            case self::TYPE_ELLIPTIC_CURVES:
-            case self::TYPE_EC_POINT_FORMATS:
-                return new Curve($this->core);
-            case self::TYPE_SIGNATURE_ALGORITHM:
-                return new SignatureAlgorithm($this->core);
-        }
-
-        return null;
-    }
-
-    private function onEncode($method, $extensions)
-    {
-        // $extensions[] = ['type' => $extType, 'data' => $extData];
-        foreach ($extensions as $extension) {
-            if (!isset($extension['type']) || !isset($extension['data'])) {
-                throw new Exception("Invalid Extension Paramenter");
-            }
-
-            $type = $extension['type'];
-            $data = $extension['data'];
-
-            if (array_key_exists($type, self::$supportedList)) {
-                $className = self::$supportedList[$type];
-
-                if (!isset($this->instances[$className])) {
-                    $this->instances[$className] = $this->getExtension($type);
-                }
-
-                $ins = $this->instances[$className];
-
-                if (!$ins instanceof ExtensionAbstract) {
-                    throw new Exception("Not ExtensionAbstract");
-                }
-                call_user_func([$ins, $method], $type, $data);// fix php 5.6
-                //[$ins, $method]($type, $data);
-            }
-        }
-    }
-
-    private function onDecode($method)
-    {
-        $out = '';
-
-        if (!count($this->instances)) {
-            return $out;
-        }
-
-        foreach ($this->instances as $className => $ins) {
-            //$out .= [$ins, $method]();
-            $out .= call_user_func([$ins, $method]); // fix php 5.6
-        }
-
-        return $out;
     }
 
     public function __call($method, $args)
@@ -118,5 +62,63 @@ class TLSExtensions
         }
 
         return $default;
+    }
+
+    private function getExtension($type)
+    {
+        switch ($type) {
+            case self::TYPE_ELLIPTIC_CURVES:
+            case self::TYPE_EC_POINT_FORMATS:
+                return new Curve($this->core);
+            case self::TYPE_SIGNATURE_ALGORITHM:
+                return new SignatureAlgorithm($this->core);
+        }
+
+        return null;
+    }
+
+    private function onEncode($method, $extensions)
+    {
+        // $extensions[] = ['type' => $extType, 'data' => $extData];
+        foreach ($extensions as $extension) {
+            if (!isset($extension['type']) || !isset($extension['data'])) {
+                throw new Exception('Invalid Extension Paramenter');
+            }
+
+            $type = $extension['type'];
+            $data = $extension['data'];
+
+            if (array_key_exists($type, self::$supportedList)) {
+                $className = self::$supportedList[$type];
+
+                if (!isset($this->instances[$className])) {
+                    $this->instances[$className] = $this->getExtension($type);
+                }
+
+                $ins = $this->instances[$className];
+
+                if (!$ins instanceof ExtensionAbstract) {
+                    throw new Exception('Not ExtensionAbstract');
+                }
+                call_user_func([$ins, $method], $type, $data); // fix php 5.6
+                //[$ins, $method]($type, $data);
+            }
+        }
+    }
+
+    private function onDecode($method)
+    {
+        $out = '';
+
+        if (!count($this->instances)) {
+            return $out;
+        }
+
+        foreach ($this->instances as $className => $ins) {
+            //$out .= [$ins, $method]();
+            $out .= call_user_func([$ins, $method]); // fix php 5.6
+        }
+
+        return $out;
     }
 }

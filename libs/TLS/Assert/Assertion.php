@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * Assert
  *
@@ -266,23 +268,50 @@ class Assertion
     protected static $exceptionClass = 'Assert\InvalidArgumentException';
 
     /**
-     * Helper method that handles building the assertion failure exceptions.
-     * They are returned from this method so that the stack trace still shows
-     * the assertions method.
+     * static call handler to implement:
+     *  - "null or assertion" delegation
+     *  - "all" delegation.
      *
-     * @param mixed $value
-     * @param string|callable $message
-     * @param int $code
-     * @param string|null $propertyPath
-     * @param array $constraints
+     * @param string $method
+     * @param array $args
      *
-     * @return mixed
+     * @return bool|mixed
      */
-    protected static function createException($value, $message, $code, $propertyPath = null, array $constraints = [])
+    public static function __callStatic($method, $args)
     {
-        $exceptionClass = static::$exceptionClass;
+        if (\strpos($method, 'nullOr') === 0) {
+            if (!\array_key_exists(0, $args)) {
+                throw new BadMethodCallException('Missing the first argument.');
+            }
 
-        return new $exceptionClass($message, $code, $propertyPath, $value, $constraints);
+            if ($args[0] === null) {
+                return true;
+            }
+
+            $method = \substr($method, 6);
+
+            return \call_user_func_array([\get_called_class(), $method], $args);
+        }
+
+        if (\strpos($method, 'all') === 0) {
+            if (!\array_key_exists(0, $args)) {
+                throw new BadMethodCallException('Missing the first argument.');
+            }
+
+            static::isTraversable($args[0]);
+
+            $method = \substr($method, 3);
+            $values = \array_shift($args);
+            $calledClass = \get_called_class();
+
+            foreach ($values as $value) {
+                \call_user_func_array([$calledClass, $method], \array_merge([$value], $args));
+            }
+
+            return true;
+        }
+
+        throw new BadMethodCallException('No assertion Assertion#' . $method . ' exists.');
     }
 
     /**
@@ -480,7 +509,7 @@ class Assertion
      */
     public static function digit($value, $message = null, $propertyPath = null)
     {
-        if (!\ctype_digit((string)$value)) {
+        if (!\ctype_digit((string) $value)) {
             $message = \sprintf(
                 static::generateMessage($message) ?: 'Value "%s" is not a digit.',
                 static::stringify($value)
@@ -1878,53 +1907,6 @@ class Assertion
     }
 
     /**
-     * static call handler to implement:
-     *  - "null or assertion" delegation
-     *  - "all" delegation.
-     *
-     * @param string $method
-     * @param array $args
-     *
-     * @return bool|mixed
-     */
-    public static function __callStatic($method, $args)
-    {
-        if (\strpos($method, 'nullOr') === 0) {
-            if (!\array_key_exists(0, $args)) {
-                throw new BadMethodCallException('Missing the first argument.');
-            }
-
-            if ($args[0] === null) {
-                return true;
-            }
-
-            $method = \substr($method, 6);
-
-            return \call_user_func_array([\get_called_class(), $method], $args);
-        }
-
-        if (\strpos($method, 'all') === 0) {
-            if (!\array_key_exists(0, $args)) {
-                throw new BadMethodCallException('Missing the first argument.');
-            }
-
-            static::isTraversable($args[0]);
-
-            $method = \substr($method, 3);
-            $values = \array_shift($args);
-            $calledClass = \get_called_class();
-
-            foreach ($values as $value) {
-                \call_user_func_array([$calledClass, $method], \array_merge([$value], $args));
-            }
-
-            return true;
-        }
-
-        throw new BadMethodCallException('No assertion Assertion#' . $method . ' exists.');
-    }
-
-    /**
      * Determines if the values array has every choice as key and that this choice has content.
      *
      * @param array $values
@@ -2483,6 +2465,48 @@ class Assertion
     }
 
     /**
+     * Assert that a constant is defined.
+     *
+     * @param mixed $constant
+     * @param string|callable|null $message
+     * @param string|null $propertyPath
+     *
+     * @return bool
+     *
+     * @throws \Assert\AssertionFailedException
+     */
+    public static function defined($constant, $message = null, $propertyPath = null)
+    {
+        if (!\defined($constant)) {
+            $message = \sprintf(static::generateMessage($message) ?: 'Value "%s" expected to be a defined constant.', $constant);
+
+            throw static::createException($constant, $message, static::INVALID_CONSTANT, $propertyPath);
+        }
+
+        return true;
+    }
+
+    /**
+     * Helper method that handles building the assertion failure exceptions.
+     * They are returned from this method so that the stack trace still shows
+     * the assertions method.
+     *
+     * @param mixed $value
+     * @param string|callable $message
+     * @param int $code
+     * @param string|null $propertyPath
+     * @param array $constraints
+     *
+     * @return mixed
+     */
+    protected static function createException($value, $message, $code, $propertyPath = null, array $constraints = [])
+    {
+        $exceptionClass = static::$exceptionClass;
+
+        return new $exceptionClass($message, $code, $propertyPath, $value, $constraints);
+    }
+
+    /**
      * Make a string version of a value.
      *
      * @param mixed $value
@@ -2498,7 +2522,7 @@ class Assertion
         }
 
         if (\is_scalar($value)) {
-            $val = (string)$value;
+            $val = (string) $value;
 
             if (\strlen($val) > 100) {
                 $val = \substr($val, 0, 97) . '...';
@@ -2524,28 +2548,6 @@ class Assertion
         }
 
         return $result;
-    }
-
-    /**
-     * Assert that a constant is defined.
-     *
-     * @param mixed $constant
-     * @param string|callable|null $message
-     * @param string|null $propertyPath
-     *
-     * @return bool
-     *
-     * @throws \Assert\AssertionFailedException
-     */
-    public static function defined($constant, $message = null, $propertyPath = null)
-    {
-        if (!\defined($constant)) {
-            $message = \sprintf(static::generateMessage($message) ?: 'Value "%s" expected to be a defined constant.', $constant);
-
-            throw static::createException($constant, $message, static::INVALID_CONSTANT, $propertyPath);
-        }
-
-        return true;
     }
 
     /**
@@ -2577,6 +2579,6 @@ class Assertion
             $message = \call_user_func_array($message, [$parameters]);
         }
 
-        return \is_null($message) ? null : (string)$message;
+        return \is_null($message) ? null : (string) $message;
     }
 }

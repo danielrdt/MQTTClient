@@ -1,10 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Mdanter\Ecc\Primitives;
 
-use Mdanter\Ecc\Math\GmpMathInterface;
 use Mdanter\Ecc\Crypto\Key\PrivateKey;
 use Mdanter\Ecc\Crypto\Key\PublicKey;
+use Mdanter\Ecc\Math\GmpMathInterface;
 use Mdanter\Ecc\Random\RandomGeneratorFactory;
 use Mdanter\Ecc\Random\RandomNumberGeneratorInterface;
 
