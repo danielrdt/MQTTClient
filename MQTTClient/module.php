@@ -348,7 +348,7 @@ class MQTTClient extends IPSModule
         }
     }
 
-    public function Publish(string $topic, string $content, int $qos = 0, int $retain = 0)
+    public function Publish(string $topic, string $content, int $qos = 0, bool $retain = false)
     {
         if (!is_null($this->mqtt)) {
             $this->mqtt->publish($topic, $content, $qos, $retain);
