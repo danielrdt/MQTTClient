@@ -253,7 +253,7 @@ class MQTTClient extends IPSModule
         $Buffer = utf8_decode($data->Buffer);
         $Buffer = json_decode($Buffer);
         if (!isset($Buffer->Function)) {
-            $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
+            $this->Publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
             return;
         }
 
@@ -263,7 +263,7 @@ class MQTTClient extends IPSModule
             break;
 
             case 'Publish':
-                $this->publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
+                $this->Publish($Buffer->Topic, $Buffer->Payload, 0, $Buffer->Retain);
             break;
         }
     }
