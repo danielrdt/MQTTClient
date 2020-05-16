@@ -37,6 +37,7 @@ class Buffer
 
     public function length()
     {
+        if(!$this->buffer) return 0;
         return strlen($this->buffer);
     }
 }
