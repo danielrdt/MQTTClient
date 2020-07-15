@@ -88,7 +88,7 @@ class ConnectionDuplex
             $record->encode($data);
             $data = $record->get('dataRest');
 
-            if ($strlen == strlen($data)) {
+            if (!is_null($data) && $strlen == strlen($data)) {
                 throw new TLSAlertException(Alert::create(Alert::INTERNAL_ERROR), 'Failed on encodeRecord');
             }
         }
