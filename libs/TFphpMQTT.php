@@ -264,6 +264,12 @@ class phpMQTT
                     case 3: // PUBLISH, Publish message
                                 $this->message($string);
                         break;
+                    case 9:         // SUBACK
+                        if ($this->debug) {
+                            $call = $this->onDebug;
+                            $this->owner->$call('MQTT:RX::SUBACK', '');
+                        }
+                        break;
                     case 13:         // PINGRESP, PING response
                         if ($this->debug) {
                             $call = $this->onDebug;
