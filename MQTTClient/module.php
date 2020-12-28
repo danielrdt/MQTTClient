@@ -67,6 +67,9 @@ class MQTTClient extends IPSModule
 
     public function ApplyChanges()
     {
+        // Diese Zeile nicht loeschen
+        parent::ApplyChanges();
+
         $this->RegisterMessage(0, IPS_BASE);
         $this->RegisterMessage(0, IPS_KERNELSTARTED);
         $this->RegisterMessage(0, OM_CHANGEPARENT);
@@ -81,9 +84,7 @@ class MQTTClient extends IPSModule
                 restore_error_handler();
             }
         }
-
-        // Diese Zeile nicht loeschen
-        parent::ApplyChanges();
+		$this->SetStatus(IS_ACTIVE);
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
