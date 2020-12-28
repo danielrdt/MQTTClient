@@ -57,8 +57,8 @@ class MQTTClient extends IPSModule
         $this->RegisterPropertyInteger('MQTTVersion', phpMQTT::MQTT_VERSION_311);
 
         $this->RegisterPropertyInteger('PingInterval', 30);
-        $this->RegisterTimer('MQTTC_Ping', 0, 'MQTTC_Ping($_IPS[\'TARGET\']);');
-        $this->RegisterTimer('MQTTC_Reconnect', 0, 'MQTTC_Reconnect($_IPS[\'TARGET\'], true);');
+        $this->RegisterTimer('MQTTCL_Ping', 0, 'MQTTCL_Ping($_IPS[\'TARGET\']);');
+        $this->RegisterTimer('MQTTCL_Reconnect', 0, 'MQTTCL_Reconnect($_IPS[\'TARGET\'], true);');
 
         $this->RegisterMessage(0, IPS_KERNELMESSAGE);
 
@@ -84,7 +84,7 @@ class MQTTClient extends IPSModule
                 restore_error_handler();
             }
         }
-		$this->SetStatus(IS_ACTIVE);
+		//$this->SetStatus(IS_ACTIVE);
     }
 
     public function MessageSink($TimeStamp, $SenderID, $Message, $Data)
@@ -101,7 +101,7 @@ class MQTTClient extends IPSModule
                 if ($SenderID === $this->GetConnectionID()) {
                     switch ($Data[0]) {
                         case 102:
-                            $this->SetTimerInterval('MQTTC_Reconnect', 0);
+                            $this->SetTimerInterval('MQTTCL_Reconnect', 0);
                             $this->SendDebug(__FUNCTION__, 'I/O Modul > Aktiviert', 0);
                             $this->State = TLSState::Init;
                             $this->Multi_TLS = null;
@@ -132,7 +132,7 @@ class MQTTClient extends IPSModule
                             $this->State = TLSState::Init;
                             $this->Multi_TLS = null;
                             IPS_Sleep(500);
-                            $this->SetTimerInterval('MQTTC_Reconnect', 5000);
+                            $this->SetTimerInterval('MQTTCL_Reconnect', 5000);
                             $this->SendDebug(__FUNCTION__, 'Enabled reconnect in 5s', 0);
                             break;
                         default:
@@ -216,7 +216,7 @@ class MQTTClient extends IPSModule
                             $buffer .= $TLS->input();
                         } catch (Exception $e) {
                             $this->SendDebug('TLS Error', $e->getMessage(), 0);
-                            $this->SetTimerInterval('MQTTC_Reconnect', 1000);
+                            $this->SetTimerInterval('MQTTCL_Reconnect', 1000);
                             return;
                         }
                     } else {
@@ -290,7 +290,7 @@ class MQTTClient extends IPSModule
 
         if (!$this->HasActiveParent()) {
             $this->SendDebug(__FUNCTION__, 'No active Parent', 0);
-            $this->SetTimerInterval('MQTTC_Ping', 0);
+            $this->SetTimerInterval('MQTTCL_Ping', 0);
             return $res;
         }
 
@@ -311,7 +311,7 @@ class MQTTClient extends IPSModule
         } else {
             $this->SendDebug(__FUNCTION__, 'No active Parent', 0);
         }
-        $this->SetTimerInterval('MQTTC_Ping', $this->ReadPropertyInteger('PingInterval') * 1000);
+        $this->SetTimerInterval('MQTTCL_Ping', $this->ReadPropertyInteger('PingInterval') * 1000);
         return $res;
     }
 
@@ -407,7 +407,7 @@ class MQTTClient extends IPSModule
 
                 if ($this->tls_loop < 2) {
                     $this->tls_loop++;
-                    $this->SetTimerInterval('MQTTC_Reconnect', 1000);
+                    $this->SetTimerInterval('MQTTCL_Reconnect', 1000);
                 } else {
                     $this->State = TLSState::Init;
                 }
@@ -501,7 +501,7 @@ class MQTTClient extends IPSModule
             $clientid = $this->GetClientID();
             $this->LogMessage('Connection closed', KL_NOTIFY);
         }
-        $this->SetTimerInterval('MQTTC_Ping', 0);
+        $this->SetTimerInterval('MQTTCL_Ping', 0);
     }
 
     private function GetClientID()
@@ -532,7 +532,7 @@ class MQTTClient extends IPSModule
                     $this->LogMessage('Connected to ClientID ' . $clientid, KL_NOTIFY);
                     $this->OSave($this->mqtt, 'MQTT');
                     IPS_Sleep(500);
-                    $this->SetTimerInterval('MQTTC_Ping', $this->ReadPropertyInteger('PingInterval') * 1000);
+                    $this->SetTimerInterval('MQTTCL_Ping', $this->ReadPropertyInteger('PingInterval') * 1000);
                 }
             }
         }

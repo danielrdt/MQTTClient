@@ -109,15 +109,15 @@ Die Erweiterung auf 3.1.1 wurde nicht intensiv getestet, funktioniert aber für 
 
 ## 5 Funktionen
 
-**MQTTC_Publish(string $Topic, string $payload, $qos, $retain)**
+**MQTTCL_Publish(string $Topic, string $payload, $qos, $retain)**
 ```php
 $topic = 'Licht1';
 $payload = 'ON';
-MQTTC_Publish(12345 /*[MQTTClient]*/, $topic, $payload, 0, 0);	  //InstanzID muss angepasst werden.
+MQTTCL_Publish(12345 /*[MQTTClient]*/, $topic, $payload, 0, 0);	  //InstanzID muss angepasst werden.
 ```
 Mit diesem Beispiel wird a ndas Topic Licht1 das Paylaod ON gesendet.
 
-**MQTTC_Subscribe(string $Topic, $qos)**
+**MQTTCL_Subscribe(string $Topic, $qos)**
 ```php
 $topic = '#';
 $qos = 0;
